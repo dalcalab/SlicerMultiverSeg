@@ -87,6 +87,38 @@ class SegmentationLogic:
         # Get the slice number
         k = self.getCurrentSliceIndex(self.workingView)
 
+        y, originalDim = self.rawPredictForSlice(k)
+
+        y = torchviz.functional.resize(y[0], originalDim)[0]
+        self.predictionCache = y.clone()
+
+        y = self.thresholdPrediction(y)
+
+        segNode = self.scriptedEffect.parameterSetNode().GetSegmentationNode()
+        segmentId = segNode.GetSegmentation().GetSegmentIdBySegment(self.resSegment)
+        resultSegment = slicer.util.arrayFromSegmentBinaryLabelmap(segNode, segmentId)
+
+        volumeNode: vtkMRMLScalarVolumeNode = self.scriptedEffect.parameterSetNode().GetSourceVolumeNode()
+        IJKToRAS = np.zeros((3, 3))
+        volumeNode.GetIJKToRASDirections(IJKToRAS)
+        KJIToRAS = IJKToRAS.copy()
+        KJIToRAS[:, 0] = IJKToRAS[:, 2]
+        KJIToRAS[:, 2] = IJKToRAS[:, 0]
+
+        resultSegment = self.reorderAxisToRAS(resultSegment, KJIToRAS)
+        resultSegment = self.updateSlice(resultSegment, y, k)
+        resultSegment = self.invertAxisReordering(resultSegment, KJIToRAS)
+
+        slicer.util.updateSegmentBinaryLabelmapFromArray(resultSegment, segNode, segmentId)
+
+    def thresholdPrediction(self, prediction: torch.Tensor, threshold=0.5):
+        prediction[prediction < threshold] = 0
+        prediction[prediction >= threshold] = 1
+        return prediction
+
+    def rawPredictForSlice(self, sliceNumber: int) -> tuple[torch.Tensor, torch.Size]:
+        # return the raw prediction and the original dimension of the slice (for resizing)
+
         # Load the context
         contextImage, contextLabel = self.contextLogic.loadContext()
         if contextImage is not None:
@@ -121,10 +153,10 @@ class SegmentationLogic:
         negArray = self.reorderAxisToRAS(negArray, KJIToRAS)
 
         # Extract the slice corresponding to the current view
-        imageSlice = self.extractSlice(imageArray, k)
-        prevPredSlice = self.extractSlice(resultSegment, k)
-        posSlice = self.extractSlice(posArray, k)
-        negSlice = self.extractSlice(negArray, k)
+        imageSlice = self.extractSlice(imageArray, sliceNumber)
+        prevPredSlice = self.extractSlice(resultSegment, sliceNumber)
+        posSlice = self.extractSlice(posArray, sliceNumber)
+        negSlice = self.extractSlice(negArray, sliceNumber)
 
         # Convertion to tensors
         imageTensor = torch.from_numpy(imageSlice)
@@ -140,41 +172,17 @@ class SegmentationLogic:
         negTensor = self.preprocessSlice(negTensor[None], isSegmentation=True)
         prevPredTensor = self.preprocessSlice(prevPredTensor[None], isSegmentation=True)
 
-        # TODO remove (maybe let with a debug option)
-        torchvision.utils.save_image(imageTensor, r"C:\Users\Kitware\Documents\tmp\MultiSegDebug\image.png")
-        torchvision.utils.save_image(posTensor.to(torch.float16) * 255,
-                                     r"C:\Users\Kitware\Documents\tmp\MultiSegDebug\scribblesPos.png")
-        torchvision.utils.save_image(negTensor.to(torch.float16) * 255,
-                                     r"C:\Users\Kitware\Documents\tmp\MultiSegDebug\scribblesNeg.png")
-        torchvision.utils.save_image(prevPredTensor.to(torch.float16) * 255,
-                                     r"C:\Users\Kitware\Documents\tmp\MultiSegDebug\prevPred.png")
-
         scribbles = torch.cat((posTensor, negTensor), dim=0)
 
-        print("Starting prediction")
+        # print("Starting prediction")
         y = self.model.predict(imageTensor[None],
                                scribbles=scribbles[None],
                                mask_input=prevPredTensor[None],
                                context_images=contextImage,
                                context_labels=contextLabel,
                                return_logits=False).cpu()
+        return y, originalDim
 
-        y = torchviz.functional.resize(y[0], originalDim)[0]
-        self.predictionCache = y.clone()
-
-        # TODO remove (maybe let with a debug option)
-        torchvision.utils.save_image(y, r"C:\Users\Kitware\Documents\tmp\MultiSegDebug\pred.png")
-
-        threshold = 0.5
-        y[y < threshold] = 0
-        y[y >= threshold] = 1
-        resultSegment = self.updateSlice(resultSegment, y, k)
-        resultSegment = self.invertAxisReordering(resultSegment, KJIToRAS)
-
-        # TODO remove (maybe let with a debug option)
-        torchvision.utils.save_image(y, r"C:\Users\Kitware\Documents\tmp\MultiSegDebug\mask.png")
-
-        slicer.util.updateSegmentBinaryLabelmapFromArray(resultSegment, segNode, segmentId)
 
     def predict3d(self):
         print(self.sliceOffsetRange)
