@@ -1,5 +1,7 @@
 import pathlib
 from typing import Optional
+
+import qt
 import torchvision.transforms.v2 as torchviz
 import numpy as np
 import slicer
@@ -185,7 +187,48 @@ class SegmentationLogic:
 
 
     def predict3d(self):
-        print(self.sliceOffsetRange)
+
+        sliceNodeID = f"vtkMRMLSliceNode{self.workingView}"
+        sliceNode = slicer.mrmlScene.GetNodeByID(sliceNodeID)
+        appLogic = slicer.app.applicationLogic()
+        sliceLogic = appLogic.GetSliceLogic(sliceNode)
+        startSlice = sliceLogic.GetSliceIndexFromOffset(self.sliceOffsetRange[0]) - 1
+        endSlice = sliceLogic.GetSliceIndexFromOffset(self.sliceOffsetRange[1]) - 1
+        startSlice, endSlice = sorted((startSlice, endSlice))
+
+        segNode = self.scriptedEffect.parameterSetNode().GetSegmentationNode()
+        segmentId = segNode.GetSegmentation().GetSegmentIdBySegment(self.resSegment)
+        resultSegment = slicer.util.arrayFromSegmentBinaryLabelmap(segNode, segmentId)
+
+        volumeNode: vtkMRMLScalarVolumeNode = self.scriptedEffect.parameterSetNode().GetSourceVolumeNode()
+        IJKToRAS = np.zeros((3, 3))
+        volumeNode.GetIJKToRASDirections(IJKToRAS)
+        KJIToRAS = IJKToRAS.copy()
+        KJIToRAS[:, 0] = IJKToRAS[:, 2]
+        KJIToRAS[:, 2] = IJKToRAS[:, 0]
+
+        resultSegment = self.reorderAxisToRAS(resultSegment, KJIToRAS)
+
+        progressDialog = qt.QProgressDialog("Running 3d prediction...", "Abort prediction", startSlice - 1, endSlice)
+        progressDialog.setWindowModality(qt.Qt.ApplicationModal)
+        progressDialog.setValue(startSlice - 1)
+
+        for sliceNumber in range(startSlice, endSlice + 1):
+
+            y, originalDim = self.rawPredictForSlice(sliceNumber)
+            y = torchviz.functional.resize(y[0], originalDim)[0]
+            y = self.thresholdPrediction(y)
+
+            resultSegment = self.updateSlice(resultSegment, y, sliceNumber)
+            progressDialog.setValue(sliceNumber)
+
+            if progressDialog.wasCanceled:
+                break
+            slicer.app.processEvents()
+
+        resultSegment = self.invertAxisReordering(resultSegment, KJIToRAS)
+        slicer.util.updateSegmentBinaryLabelmapFromArray(resultSegment, segNode, segmentId)
+
 
     def getCurrentSliceIndex(self, sliceColor):
         sliceNodeID = f"vtkMRMLSliceNode{sliceColor}"
