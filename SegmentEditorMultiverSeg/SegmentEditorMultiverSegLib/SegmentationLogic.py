@@ -6,7 +6,6 @@ import torchvision.transforms.v2 as torchviz
 import numpy as np
 import slicer
 import torch
-import torchvision
 from MRMLCorePython import vtkMRMLSegmentationNode, vtkMRMLScalarVolumeNode, vtkMRMLSliceNode
 from vtkSegmentationCorePython import vtkSegment, vtkSegmentation
 
@@ -196,18 +195,55 @@ class SegmentationLogic:
         endSlice = sliceLogic.GetSliceIndexFromOffset(self.sliceOffsetRange[1]) - 1
         startSlice, endSlice = sorted((startSlice, endSlice))
 
+        # Load the context
+        contextImage, contextLabel = self.contextLogic.loadContext()
+        if contextImage is not None:
+            contextImage = contextImage[None].to(self.model.device) / 255
+            contextLabel = contextLabel[None].to(self.model.device) / 255
+
+        # Get the nodes and segment ids
+        volumeNode: vtkMRMLScalarVolumeNode = self.scriptedEffect.parameterSetNode().GetSourceVolumeNode()
         segNode = self.scriptedEffect.parameterSetNode().GetSegmentationNode()
         segmentId = segNode.GetSegmentation().GetSegmentIdBySegment(self.resSegment)
-        resultSegment = slicer.util.arrayFromSegmentBinaryLabelmap(segNode, segmentId)
+        posSegId = segNode.GetSegmentation().GetSegmentIdBySegment(self.posSegment)
+        negSegId = segNode.GetSegmentation().GetSegmentIdBySegment(self.negSegment)
 
-        volumeNode: vtkMRMLScalarVolumeNode = self.scriptedEffect.parameterSetNode().GetSourceVolumeNode()
+        # Create the convertion matrix needed to handle slice selection correctly
         IJKToRAS = np.zeros((3, 3))
         volumeNode.GetIJKToRASDirections(IJKToRAS)
         KJIToRAS = IJKToRAS.copy()
         KJIToRAS[:, 0] = IJKToRAS[:, 2]
         KJIToRAS[:, 2] = IJKToRAS[:, 0]
 
+        # Getting the different arrays
+        # Array from slicer.util are K-J-I indexed
+        resultSegment = slicer.util.arrayFromSegmentBinaryLabelmap(segNode, segmentId)
+        imageArray = slicer.util.arrayFromVolume(volumeNode).copy()
+        posArray = slicer.util.arrayFromSegmentBinaryLabelmap(segNode, posSegId)
+        negArray = slicer.util.arrayFromSegmentBinaryLabelmap(segNode, negSegId)
+
+        # Reorder axis to be R-A-S indexed
+        imageArray = self.reorderAxisToRAS(imageArray, KJIToRAS)
         resultSegment = self.reorderAxisToRAS(resultSegment, KJIToRAS)
+        posArray = self.reorderAxisToRAS(posArray, KJIToRAS)
+        negArray = self.reorderAxisToRAS(negArray, KJIToRAS)
+
+        imageSlice = self.extractSlice(imageArray, 0)
+        originalDim = imageSlice.shape
+
+        # Convertion to tensors
+        imageTensor = torch.from_numpy(imageArray)
+        prevPredTensor = torch.from_numpy(resultSegment)
+        posTensor = torch.from_numpy(posArray)
+        negTensor = torch.from_numpy(negArray)
+
+        originalDim = imageTensor.shape
+
+        # Pre process
+        imageTensor = self.preprocessVolume(imageTensor[None])[0, 0]
+        posTensor = self.preprocessVolume(posTensor[None], isSegmentation=True)[0, 0]
+        negTensor = self.preprocessVolume(negTensor[None], isSegmentation=True)[0, 0]
+        prevPredTensor = self.preprocessVolume(prevPredTensor[None], isSegmentation=True)[0, 0]
 
         progressDialog = qt.QProgressDialog("Running 3d prediction...", "Abort prediction", startSlice - 1, endSlice)
         progressDialog.setWindowModality(qt.Qt.ApplicationModal)
@@ -215,7 +251,20 @@ class SegmentationLogic:
 
         for sliceNumber in range(startSlice, endSlice + 1):
 
-            y, originalDim = self.rawPredictForSlice(sliceNumber)
+            # Extract the slice corresponding to the current view
+            imageSlice = self.extractSlice(imageTensor, sliceNumber)[None]
+            prevPredSlice = self.extractSlice(prevPredTensor, sliceNumber)[None]
+            posSlice = self.extractSlice(posTensor, sliceNumber)[None]
+            negSlice = self.extractSlice(negTensor, sliceNumber)[None]
+
+            scribbles = torch.cat((posSlice, negSlice), dim=0)
+
+            y = self.model.predict(imageSlice[None],
+                                   scribbles=scribbles[None],
+                                   mask_input=prevPredSlice[None],
+                                   context_images=contextImage,
+                                   context_labels=contextLabel,
+                                   return_logits=False).cpu()
             y = torchviz.functional.resize(y[0], originalDim)[0]
             y = self.thresholdPrediction(y)
 
@@ -288,6 +337,38 @@ class SegmentationLogic:
 
         # Resizing
         result = torchviz.functional.resize(slice, size=[128, 128]).to(targetDtype)
+
+        # Bring the values between 0 and 1
+        if not isSegmentation:
+            result -= torch.min(result)
+            result /= torch.max(result)
+
+        return result
+
+    def preprocessVolume(self, volume: torch.Tensor, isSegmentation=False):
+        # volume indexed RAS
+        if isSegmentation:
+            targetDtype = torch.bool
+        else:
+            targetDtype = torch.float16
+
+        sliceNodeID = f"vtkMRMLSliceNode{self.workingView}"
+        sliceNode: vtkMRMLSliceNode = slicer.mrmlScene.GetNodeByID(sliceNodeID)
+        orientation = sliceNode.GetOrientation()
+        originalSize = volume.shape
+
+        if orientation == "Axial":
+            targetSize = [128, 128, originalSize[3]]
+        elif orientation == "Sagittal":
+            targetSize = [originalSize[1], 128, 128]
+        elif orientation == "Coronal":
+            targetSize = [128, originalSize[2], 128]
+        else:
+            raise ValueError(f"Orientation {orientation} is not supported")
+
+        # Resizing
+        result = torch.nn.functional.interpolate(volume[None].to(torch.float), targetSize, mode='trilinear').to(
+            targetDtype)
 
         # Bring the values between 0 and 1
         if not isSegmentation:
