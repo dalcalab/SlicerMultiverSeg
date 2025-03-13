@@ -249,7 +249,14 @@ class SegmentationLogic:
         progressDialog.setWindowModality(qt.Qt.ApplicationModal)
         progressDialog.setValue(startSlice - 1)
 
-        for sliceNumber in range(startSlice, endSlice + 1):
+        linspace = np.linspace(self.sliceOffsetRange[0],
+                               self.sliceOffsetRange[1],
+                               endSlice - startSlice + 1,
+                               endpoint=True)
+
+        for sliceNumber, sliceOffset in zip(range(startSlice, endSlice + 1), linspace):
+            # Switch view to slice
+            sliceLogic.SetSliceOffset(sliceOffset)
 
             # Extract the slice corresponding to the current view
             imageSlice = self.extractSlice(imageTensor, sliceNumber)[None]
