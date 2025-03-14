@@ -159,8 +159,8 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         # Called when click "initialize" button
 
         # Initialize the segmentation logic
-        self.segmentationLogic.initSegments()
         self.segmentationLogic.initModel()
+        self.segmentationLogic.initSegments()
 
         # Change handle the selected view
         self.changeViewLayout()

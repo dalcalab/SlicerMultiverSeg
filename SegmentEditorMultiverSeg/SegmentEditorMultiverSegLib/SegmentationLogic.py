@@ -56,7 +56,9 @@ class SegmentationLogic:
         from multiverseg.models.sp_mvs import MultiverSeg
         from scribbleprompt.models.unet import ScribblePromptUNet
 
-        # TODO: Handle model download if not present
+        from .InstallLogic import InstallLogic
+        if not InstallLogic.downloadCheckpointsIfNeeded():
+            return
 
         # Update the path to the model weights
         MultiverSeg.weights["v0"] = pathlib.Path(__file__).parent.joinpath(
