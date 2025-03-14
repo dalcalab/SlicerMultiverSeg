@@ -78,9 +78,6 @@ class SegmentationLogic:
         self.posSegment = None
         self.resSegment = None
 
-        # Reset range selection
-        self.sliceOffsetRange = (0, 0)
-
     def setOffsetRange(self, min, max):
         self.sliceOffsetRange = (min, max)
 
