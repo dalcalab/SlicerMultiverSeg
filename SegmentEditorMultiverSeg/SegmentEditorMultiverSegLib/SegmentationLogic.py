@@ -237,7 +237,6 @@ class SegmentationLogic:
         posTensor = torch.from_numpy(posArray)
         negTensor = torch.from_numpy(negArray)
 
-        originalDim = imageTensor.shape
 
         # Pre process
         imageTensor = self.preprocessVolume(imageTensor[None])[0, 0]
