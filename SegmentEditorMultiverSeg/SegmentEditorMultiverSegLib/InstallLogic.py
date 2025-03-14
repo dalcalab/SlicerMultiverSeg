@@ -33,18 +33,8 @@ class InstallLogic:
 
         if not modelPath.is_file():
             if slicer.util.confirmOkCancelDisplay("The MultiverSeg model is required. Confirm to download (74MB)."):
-                slicer.progressWindow = slicer.util.createProgressDialog()
-                slicer.progressWindow.setLabelText("Downloading MultiverSeg checkpoint...")
-                sampleDataLogic = SampleData.SampleDataLogic()
-                sampleDataLogic.logMessage = lambda msg, lvl=None: cls.reportProgress(sampleDataLogic, msg, lvl)
 
-                fileDest = sampleDataLogic.downloadFileIntoCache(cls.MULTIVERSEG_DOWNLOAD_URL,
-                                                                 cls.MULTIVERSEG_FILE_NAME)
-
-                if sampleDataLogic.downloadPercent and sampleDataLogic.downloadPercent == 100:
-                    shutil.copyfile(fileDest, modelPath)
-                    slicer.progressWindow.close()
-
+                cls._downloadModel(cls.MULTIVERSEG_FILE_NAME, cls.MULTIVERSEG_DOWNLOAD_URL)
                 return True  # Model downloaded correctly
             else:
                 return False  # User did not accept to download the model
@@ -57,22 +47,27 @@ class InstallLogic:
         if not modelPath.is_file():
             if slicer.util.confirmOkCancelDisplay("The ScribblePrompt model is required. Confirm to download (16MB)."):
 
-                slicer.progressWindow = slicer.util.createProgressDialog()
-                slicer.progressWindow.setLabelText("Downloading ScribblePrompt checkpoint...")
-                sampleDataLogic = SampleData.SampleDataLogic()
-                sampleDataLogic.logMessage = lambda x: cls.reportProgress(sampleDataLogic, x)
-
-                fileDest = sampleDataLogic.downloadFileIntoCache(cls.SCRIBBLEPROMPT_DOWNLOAD_URL,
-                                                                 cls.SCRIBBLEPROMPT_FILE_NAME)
-
-                if sampleDataLogic.downloadPercent and sampleDataLogic.downloadPercent == 100:
-                    shutil.copyfile(fileDest, modelPath)
-                    slicer.progressWindow.close()
+                cls._downloadModel(cls.SCRIBBLEPROMPT_FILE_NAME, cls.SCRIBBLEPROMPT_DOWNLOAD_URL)
 
                 return True  # Model downloaded correctly
             else:
                 return False  # User did not accept to download the model
         return True  # No need to download the model
+
+    @classmethod
+    def _downloadModel(cls, modelName, modelURI):
+        modelPath = cls.CKPT_DIR.joinpath(modelName)
+        slicer.progressWindow = slicer.util.createProgressDialog()
+        slicer.progressWindow.setLabelText(f"Downloading {modelName.split('_')[0]} checkpoint...")
+        sampleDataLogic = SampleData.SampleDataLogic()
+        sampleDataLogic.logMessage = lambda msg, lvl=None: cls.reportProgress(sampleDataLogic, msg, lvl)
+
+        fileDest = sampleDataLogic.downloadFileIntoCache(modelURI,
+                                                         modelName)
+
+        if sampleDataLogic.downloadPercent and sampleDataLogic.downloadPercent == 100:
+            shutil.copyfile(fileDest, modelPath)
+            slicer.progressWindow.close()
 
     @staticmethod
     def reportProgress(logic, msg, level=None):
