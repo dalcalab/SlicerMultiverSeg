@@ -59,13 +59,16 @@ class SegmentationLogic:
         segmentation.AddSegment(self.negSegment)
 
     def initModel(self):
-        # TODO: Handle dependency installation
+        from .InstallLogic import InstallLogic, DependenciesLogic
+
+        if not DependenciesLogic.installDependenciesIfNeeded():
+            return False
+
         from multiverseg.models.sp_mvs import MultiverSeg
         from scribbleprompt.models.unet import ScribblePromptUNet
 
-        from .InstallLogic import InstallLogic
         if not InstallLogic.downloadCheckpointsIfNeeded():
-            return
+            return False
 
         # Update the path to the model weights
         MultiverSeg.weights["v0"] = pathlib.Path(__file__).parent.joinpath(
@@ -73,6 +76,7 @@ class SegmentationLogic:
         ScribblePromptUNet.weights["v1"] = pathlib.Path(__file__).parent.joinpath(
             "../Resources/Checkpoints/ScribblePrompt_unet_v1_nf192_res128.pt").resolve()
         self.model = MultiverSeg(version="v0")
+        return True
 
     def reset(self):
         if self.segmentationNode is None:
@@ -95,7 +99,6 @@ class SegmentationLogic:
         import torchvision.transforms.v2 as torchviz
 
         k = self.getCurrentSliceIndex(self.workingView)
-
         y, originalDim = self.rawPredictForSlice(k)
 
         y = torchviz.functional.resize(y[0], originalDim)[0]
@@ -245,7 +248,6 @@ class SegmentationLogic:
         prevPredTensor = torch.from_numpy(resultSegment)
         posTensor = torch.from_numpy(posArray)
         negTensor = torch.from_numpy(negArray)
-
 
         # Pre process
         imageTensor = self.preprocessVolume(imageTensor[None])[0, 0]

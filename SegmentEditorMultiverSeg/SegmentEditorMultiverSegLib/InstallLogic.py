@@ -1,4 +1,5 @@
 import shutil
+import sys
 from pathlib import Path
 
 import SampleData
@@ -16,8 +17,7 @@ class InstallLogic:
     @classmethod
     def downloadCheckpointsIfNeeded(cls):
         try:
-            if (cls.downloadMultiverSegCheckpointIfNeeded() and
-                    cls.downloadScribblePromptCheckpointIfNeeded()):
+            if (cls.downloadMultiverSegCheckpointIfNeeded() and cls.downloadScribblePromptCheckpointIfNeeded()):
                 return True
             else:
                 return False
@@ -62,8 +62,7 @@ class InstallLogic:
         sampleDataLogic = SampleData.SampleDataLogic()
         sampleDataLogic.logMessage = lambda msg, lvl=None: cls.reportProgress(sampleDataLogic, msg, lvl)
 
-        fileDest = sampleDataLogic.downloadFileIntoCache(modelURI,
-                                                         modelName)
+        fileDest = sampleDataLogic.downloadFileIntoCache(modelURI, modelName)
 
         if sampleDataLogic.downloadPercent and sampleDataLogic.downloadPercent == 100:
             shutil.copyfile(fileDest, modelPath)
@@ -86,3 +85,93 @@ class InstallLogic:
 
         # Process events to allow screen to refresh
         slicer.app.processEvents()
+
+
+class DependenciesLogic:
+
+    # Install dependencies to torch and multiverseg if not already installed
+    @classmethod
+    def installDependenciesIfNeeded(cls):
+        # Return True when all is setup correctly
+        if not cls.installTorchIfNeeded():
+            print("Torch was not installed correctly", file=sys.stderr)
+            return False
+
+        if not cls.installMultiverSegIfNeeded():
+            print("MultiverSeg package was not installed correctly", file=sys.stderr)
+            return False
+
+        return True
+
+    # Install the PyTorch Utils extension if not already installed
+    @classmethod
+    def installPyTorchExtensionIfNeeded(cls):
+        # Return True when all is setup correctly
+        # Return False when PyTorch extension is not installed or slicer need to restart
+        # Throw an error if something went wrong with the installation
+        try:
+            import PyTorchUtils  # noqa
+            return True
+        except ModuleNotFoundError:
+            ret = slicer.util.confirmOkCancelDisplay("""This module requires PyTorch extension. Would you like to install it?
+                
+Slicer will need to be restarted before continuing the install.""", "PyTorch extension not found.")
+            if ret:
+                cls.installPyTorchExtension()
+            return False  # Need restart or not installed
+
+    # Install the PyTorch Utils extension
+    @staticmethod
+    def installPyTorchExtension():
+        extensionManager = slicer.app.extensionsManagerModel()
+        extName = "PyTorch"
+        if extensionManager.isExtensionInstalled(extName):
+            return
+
+        if not extensionManager.installExtensionFromServer(extName):
+            raise RuntimeError("Failed to install PyTorch extension from the servers. "
+                               "Manually install to continue.")
+
+    # Check if multiverseg is installed, and prompt the user to install it if not
+    @classmethod
+    def installMultiverSegIfNeeded(cls):
+        try:
+            import multiverseg
+            return True
+        except ModuleNotFoundError:
+            ret = slicer.util.confirmOkCancelDisplay(
+                "This module requires the MultiverSeg python package. Would you like to install it?",
+                "MultiverSeg package not found.")
+            if ret:
+                cls.installMultiverSeg()
+                return True
+
+            return False
+
+    # Install multiverseg
+    @classmethod
+    def installMultiverSeg(cls):
+        # TODO: Change when https://github.com/halleewong/MultiverSeg/pull/3 is merged
+        slicer.util.pip_install("git+https://github.com/SebGoll/MultiverSeg.git")
+
+    # Check if torch is installed and install it if not
+    @classmethod
+    def installTorchIfNeeded(cls):
+        try:
+            import torch
+            import torchvision
+            return True
+        except ModuleNotFoundError:
+            return cls.installTorch()
+
+    # Install torch through PyTorch Utils extension
+    @classmethod
+    def installTorch(cls):
+        import PyTorchUtils
+        torchLogic = PyTorchUtils.PyTorchUtilsLogic()
+        res = torchLogic.installTorch(askConfirmation=True)
+
+        if res is None:
+            raise RuntimeError("Failed to install torch and torchvision. "
+                               "Manually install through PyTorch Utils extension to continue.")
+        return res

@@ -9,6 +9,8 @@ from MRMLCorePython import *
 
 from vtkSlicerSegmentationsModuleMRMLPython import vtkMRMLSegmentEditorNode
 import ctk
+
+from .InstallLogic import DependenciesLogic
 from .SegmentationLogic import SegmentationLogic
 
 
@@ -158,8 +160,14 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
     def onInit(self):
         # Called when click "initialize" button
 
+        #Installation of PyTorch Utils extension used to install pytorch
+        canContinue = DependenciesLogic.installPyTorchExtensionIfNeeded()
+        if not canContinue:
+            return
+
         # Initialize the segmentation logic
-        self.segmentationLogic.initModel()
+        isModelInitialized = self.segmentationLogic.initModel()
+        if not isModelInitialized: return
         self.segmentationLogic.initSegments()
 
         # Change handle the selected view
