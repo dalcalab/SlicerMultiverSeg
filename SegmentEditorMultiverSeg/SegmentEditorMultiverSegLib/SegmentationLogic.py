@@ -1,13 +1,20 @@
 import pathlib
+import typing
 from typing import Optional
 
 import qt
-import torchvision.transforms.v2 as torchviz
+
 import numpy as np
 import slicer
-import torch
+
 from MRMLCorePython import vtkMRMLSegmentationNode, vtkMRMLScalarVolumeNode, vtkMRMLSliceNode
 from vtkSegmentationCorePython import vtkSegment, vtkSegmentation
+
+if typing.TYPE_CHECKING:
+    # https://docs.python.org/3.9/library/typing.html#typing.TYPE_CHECKING
+    # Allow typing in signatures without importing at runtime
+    import torchvision.transforms.v2 as torchviz
+    import torch
 
 
 class SegmentationLogic:
@@ -28,7 +35,7 @@ class SegmentationLogic:
         from .ContextLogic import ContextLogic
         self.contextLogic = ContextLogic(scriptedEffect)
 
-        self.sliceOffsetRange = (0, 0)
+        self.sliceOffsetRange = (0., 0.)
 
     def initSegments(self):
         # Get the current segment
@@ -80,11 +87,13 @@ class SegmentationLogic:
         self.posSegment = None
         self.resSegment = None
 
-    def setOffsetRange(self, min, max):
+    def setOffsetRange(self, min: float, max: float):
         self.sliceOffsetRange = (min, max)
 
     def predict(self):
         # Get the slice number
+        import torchvision.transforms.v2 as torchviz
+
         k = self.getCurrentSliceIndex(self.workingView)
 
         y, originalDim = self.rawPredictForSlice(k)
@@ -111,14 +120,14 @@ class SegmentationLogic:
 
         slicer.util.updateSegmentBinaryLabelmapFromArray(resultSegment, segNode, segmentId)
 
-    def thresholdPrediction(self, prediction: torch.Tensor, threshold=0.5):
+    def thresholdPrediction(self, prediction: "torch.Tensor", threshold=0.5):
         prediction[prediction < threshold] = 0
         prediction[prediction >= threshold] = 1
         return prediction
 
-    def rawPredictForSlice(self, sliceNumber: int) -> tuple[torch.Tensor, torch.Size]:
+    def rawPredictForSlice(self, sliceNumber: int) -> tuple["torch.Tensor", "torch.Size"]:
         # return the raw prediction and the original dimension of the slice (for resizing)
-
+        import torch
         # Load the context
         contextImage, contextLabel = self.contextLogic.loadContext()
         if contextImage is not None:
@@ -183,7 +192,6 @@ class SegmentationLogic:
                                return_logits=False).cpu()
         return y, originalDim
 
-
     def predict3d(self):
 
         sliceNodeID = f"vtkMRMLSliceNode{self.workingView}"
@@ -230,6 +238,8 @@ class SegmentationLogic:
         imageSlice = self.extractSlice(imageArray, 0)
         originalDim = imageSlice.shape
 
+        import torch
+        import torchvision.transforms.v2 as torchviz
         # Convertion to tensors
         imageTensor = torch.from_numpy(imageArray)
         prevPredTensor = torch.from_numpy(resultSegment)
@@ -283,7 +293,6 @@ class SegmentationLogic:
         resultSegment = self.invertAxisReordering(resultSegment, KJIToRAS)
         slicer.util.updateSegmentBinaryLabelmapFromArray(resultSegment, segNode, segmentId)
 
-
     def getCurrentSliceIndex(self, sliceColor):
         sliceNodeID = f"vtkMRMLSliceNode{sliceColor}"
 
@@ -333,8 +342,9 @@ class SegmentationLogic:
             raise ValueError(f"Orientation {orientation} is not supported")
         return array
 
-    def preprocessSlice(self, slice: torch.Tensor, isSegmentation=False):
-
+    def preprocessSlice(self, slice: "torch.Tensor", isSegmentation=False):
+        import torch
+        import torchvision.transforms.v2 as torchviz
         if isSegmentation:
             targetDtype = torch.bool
         else:
@@ -350,8 +360,9 @@ class SegmentationLogic:
 
         return result
 
-    def preprocessVolume(self, volume: torch.Tensor, isSegmentation=False):
+    def preprocessVolume(self, volume: "torch.Tensor", isSegmentation=False):
         # volume indexed RAS
+        import torch
         if isSegmentation:
             targetDtype = torch.bool
         else:

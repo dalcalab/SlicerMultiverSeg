@@ -10,14 +10,12 @@ from slicer.i18n import tr as _
 from slicer.i18n import translate
 from slicer.ScriptedLoadableModule import *
 from slicer.util import VTKObservationMixin
-from slicer.parameterNodeWrapper import (
-    parameterNodeWrapper,
-    WithinRange,
-)
+from slicer.parameterNodeWrapper import parameterNodeWrapper, WithinRange
+
+# Needed to give package ref into instantiated segment
+from SegmentEditorMultiverSegLib import SegmentationLogic, SegmentEditorEffect, ContextLogic
 
 from slicer import vtkMRMLScalarVolumeNode
-
-from SegmentEditorMultiverSegLib import SegmentationLogic, ContextLogic
 
 
 #
@@ -73,5 +71,3 @@ class SegmentEditorMultiverSegTest(ScriptedLoadableModuleTest):
     def runTest(self):
         """Run as few or as many tests as needed here."""
         self.setUp()
-
-

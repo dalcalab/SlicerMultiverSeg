@@ -4,8 +4,6 @@ import numpy as np
 import qt
 import slicer
 
-import torch
-import torchvision
 from MRMLCorePython import vtkMRMLVolumeNode, vtkMRMLSegmentationNode
 from .SegmentationLogic import SegmentationLogic
 
@@ -19,6 +17,8 @@ class ContextLogic:
         self.activeContext = None
 
     def loadContext(self):
+
+        import torch, torchvision
 
         if self.activeContext is None or self.getCurrentContextSize() == 0:
             return None, None
@@ -57,7 +57,8 @@ class ContextLogic:
 
     def saveNewExample(self, volume: vtkMRMLVolumeNode, view, segmentID, segmentationNode: vtkMRMLSegmentationNode,
                        segLogic: SegmentationLogic):
-
+        import torch
+        import torchvision
         assert self.activeContext is not None
         contextPath = self.contextRootPath.joinpath(self.activeContext)
 
