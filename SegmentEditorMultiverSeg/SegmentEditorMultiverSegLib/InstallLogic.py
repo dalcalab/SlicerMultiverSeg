@@ -151,8 +151,7 @@ Slicer will need to be restarted before continuing the install.""", "PyTorch ext
     # Install multiverseg
     @classmethod
     def installMultiverSeg(cls):
-        # TODO: Change when https://github.com/halleewong/MultiverSeg/pull/3 is merged
-        slicer.util.pip_install("git+https://github.com/SebGoll/MultiverSeg.git")
+        slicer.util.pip_install("git+https://github.com/halleewong/MultiverSeg.git")
 
     # Check if torch is installed and install it if not
     @classmethod
