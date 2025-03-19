@@ -83,8 +83,8 @@ class SegmentationLogic:
             return
 
         # Remove the pos/neg segment
-        self.segmentationNode.RemoveSegment(self.posSegment.GetName())
-        self.segmentationNode.RemoveSegment(self.negSegment.GetName())
+        self.segmentationNode.GetSegmentation().RemoveSegment(self.posSegment)
+        self.segmentationNode.GetSegmentation().RemoveSegment(self.negSegment)
 
         # Remove the internal ref to the segments
         self.negSegment = None
