@@ -250,10 +250,10 @@ class SegmentationLogic:
         negTensor = torch.from_numpy(negArray)
 
         # Pre process
-        imageTensor = self.preprocessVolume(imageTensor[None])[0, 0]
-        posTensor = self.preprocessVolume(posTensor[None], isSegmentation=True)[0, 0]
-        negTensor = self.preprocessVolume(negTensor[None], isSegmentation=True)[0, 0]
-        prevPredTensor = self.preprocessVolume(prevPredTensor[None], isSegmentation=True)[0, 0]
+        imageTensor = self.preprocessVolume(imageTensor[None])[0]
+        posTensor = self.preprocessVolume(posTensor[None], isSegmentation=True)[0]
+        negTensor = self.preprocessVolume(negTensor[None], isSegmentation=True)[0]
+        prevPredTensor = self.preprocessVolume(prevPredTensor[None], isSegmentation=True)[0]
 
         progressDialog = qt.QProgressDialog("Running 3d prediction...", "Abort prediction", startSlice - 1, endSlice)
         progressDialog.setWindowModality(qt.Qt.ApplicationModal)
@@ -345,6 +345,7 @@ class SegmentationLogic:
         return array
 
     def preprocessSlice(self, slice: "torch.Tensor", isSegmentation=False):
+        # Slice of dim  of shape 1*W*H
         import torch
         import torchvision.transforms.v2 as torchviz
         if isSegmentation:
@@ -360,10 +361,10 @@ class SegmentationLogic:
             result -= torch.min(result)
             result /= torch.max(result)
 
-        return result
+        return result # 1*W*H
 
     def preprocessVolume(self, volume: "torch.Tensor", isSegmentation=False):
-        # volume indexed RAS
+        # volume indexed RAS of shape 1*X*Y*Z
         import torch
         if isSegmentation:
             targetDtype = torch.bool
@@ -393,4 +394,4 @@ class SegmentationLogic:
             result -= torch.min(result)
             result /= torch.max(result)
 
-        return result
+        return result[0] # 1*X*Y*Z
