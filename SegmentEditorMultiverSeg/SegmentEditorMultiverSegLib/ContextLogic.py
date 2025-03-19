@@ -29,7 +29,7 @@ class ContextLogic:
 
         i = [torchvision.io.decode_image(img, mode=torchvision.io.ImageReadMode.GRAY) for img in contextImgs]
         l = [torchvision.io.decode_image(lab, mode=torchvision.io.ImageReadMode.GRAY) for lab in contextLabels]
-        return torch.stack(i), torch.stack(l)
+        return torch.stack(i), torch.stack(l)  # (n*1*H*W), (n*1*H*W)
 
     def getContextList(self):
         tasks = []
@@ -65,7 +65,7 @@ class ContextLogic:
         k = segLogic.getCurrentSliceIndex(view)
 
         imageArray = slicer.util.arrayFromVolume(volume).copy()
-        maskArray = slicer.util.arrayFromSegmentBinaryLabelmap(segmentationNode, segmentID)
+        maskArray = slicer.util.arrayFromSegmentBinaryLabelmap(segmentationNode, segmentID, volume)
 
         IJKToRAS = np.zeros((3, 3))
         volume.GetIJKToRASDirections(IJKToRAS)
@@ -87,26 +87,33 @@ class ContextLogic:
         torchvision.utils.save_image(imageTensor, contextPath.joinpath(f"image_{n}.png"))
         torchvision.utils.save_image(maskTensor.to(torch.float16) * 255, contextPath.joinpath(f"mask_{n}.png"))
 
-    def exportContext(self):
+    def exportContext(self, dir: str):
         assert self.activeContext is not None, "A context must be selected to export"
 
-        dir = qt.QFileDialog().getExistingDirectory(None, "Export to:", ".",
-                                                    qt.QFileDialog().ShowDirsOnly + qt.QFileDialog().ReadOnly)
+        if not dir:
+            return False
 
-        if dir:
-            import shutil
-            shutil.make_archive(pathlib.Path(dir).joinpath(self.activeContext), "zip",
-                                root_dir=self.contextRootPath.joinpath(self.activeContext))
+        import shutil
+        shutil.make_archive(pathlib.Path(dir).joinpath(self.activeContext), "zip",
+                            root_dir=self.contextRootPath.joinpath(self.activeContext))
+        return True
 
-    def importContext(self):
-        file = qt.QFileDialog().getOpenFileName(None, "Import context", ".", "*.zip")
+    def importContext(self, fileName: str):
 
-        if file:
-            import shutil
-            file = pathlib.Path(file)
-            shutil.unpack_archive(file, self.contextRootPath.joinpath(file.stem), "zip")
-            return file.stem
-        return ''
+        if not fileName:
+            return ''
+
+        import shutil
+        file = pathlib.Path(fileName)
+
+        if not file.is_file(): raise FileNotFoundError(f"File {fileName} does not exist.")
+
+        dest = self.contextRootPath.joinpath(file.stem)
+
+        if dest.is_dir(): raise IsADirectoryError(f"Task {file.stem} already exist.")
+
+        shutil.unpack_archive(file, dest, "zip")
+        return file.stem
 
     def deleteCurrentTask(self):
         import shutil
