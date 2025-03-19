@@ -106,11 +106,11 @@ class SegmentationLogic:
 
         y = self.thresholdPrediction(y)
 
+        volumeNode: vtkMRMLScalarVolumeNode = self.scriptedEffect.parameterSetNode().GetSourceVolumeNode()
         segNode = self.scriptedEffect.parameterSetNode().GetSegmentationNode()
         segmentId = segNode.GetSegmentation().GetSegmentIdBySegment(self.resSegment)
-        resultSegment = slicer.util.arrayFromSegmentBinaryLabelmap(segNode, segmentId)
+        resultSegment = slicer.util.arrayFromSegmentBinaryLabelmap(segNode, segmentId, volumeNode)
 
-        volumeNode: vtkMRMLScalarVolumeNode = self.scriptedEffect.parameterSetNode().GetSourceVolumeNode()
         IJKToRAS = np.zeros((3, 3))
         volumeNode.GetIJKToRASDirections(IJKToRAS)
         KJIToRAS = IJKToRAS.copy()
@@ -153,10 +153,10 @@ class SegmentationLogic:
 
         # Getting the different arrays
         # Array from slicer.util are K-J-I indexed
-        resultSegment = slicer.util.arrayFromSegmentBinaryLabelmap(segNode, segmentId)
-        imageArray = slicer.util.arrayFromVolume(volumeNode).copy()  # TODO select appropriate axis
-        posArray = slicer.util.arrayFromSegmentBinaryLabelmap(segNode, posSegId)
-        negArray = slicer.util.arrayFromSegmentBinaryLabelmap(segNode, negSegId)
+        resultSegment = slicer.util.arrayFromSegmentBinaryLabelmap(segNode, segmentId, volumeNode)
+        imageArray = slicer.util.arrayFromVolume(volumeNode).copy()
+        posArray = slicer.util.arrayFromSegmentBinaryLabelmap(segNode, posSegId, volumeNode)
+        negArray = slicer.util.arrayFromSegmentBinaryLabelmap(segNode, negSegId, volumeNode)
 
         # Reorder axis to be R-A-S indexed
         imageArray = self.reorderAxisToRAS(imageArray, KJIToRAS)
@@ -227,10 +227,10 @@ class SegmentationLogic:
 
         # Getting the different arrays
         # Array from slicer.util are K-J-I indexed
-        resultSegment = slicer.util.arrayFromSegmentBinaryLabelmap(segNode, segmentId)
+        resultSegment = slicer.util.arrayFromSegmentBinaryLabelmap(segNode, segmentId, volumeNode)
         imageArray = slicer.util.arrayFromVolume(volumeNode).copy()
-        posArray = slicer.util.arrayFromSegmentBinaryLabelmap(segNode, posSegId)
-        negArray = slicer.util.arrayFromSegmentBinaryLabelmap(segNode, negSegId)
+        posArray = slicer.util.arrayFromSegmentBinaryLabelmap(segNode, posSegId, volumeNode)
+        negArray = slicer.util.arrayFromSegmentBinaryLabelmap(segNode, negSegId, volumeNode)
 
         # Reorder axis to be R-A-S indexed
         imageArray = self.reorderAxisToRAS(imageArray, KJIToRAS)
