@@ -83,8 +83,8 @@ class SegmentationLogic:
             return
 
         # Remove the pos/neg segment
-        self.segmentationNode.RemoveSegment(self.posSegment.GetName())
-        self.segmentationNode.RemoveSegment(self.negSegment.GetName())
+        self.segmentationNode.GetSegmentation().RemoveSegment(self.posSegment)
+        self.segmentationNode.GetSegmentation().RemoveSegment(self.negSegment)
 
         # Remove the internal ref to the segments
         self.negSegment = None
@@ -106,11 +106,11 @@ class SegmentationLogic:
 
         y = self.thresholdPrediction(y)
 
+        volumeNode: vtkMRMLScalarVolumeNode = self.scriptedEffect.parameterSetNode().GetSourceVolumeNode()
         segNode = self.scriptedEffect.parameterSetNode().GetSegmentationNode()
         segmentId = segNode.GetSegmentation().GetSegmentIdBySegment(self.resSegment)
-        resultSegment = slicer.util.arrayFromSegmentBinaryLabelmap(segNode, segmentId)
+        resultSegment = slicer.util.arrayFromSegmentBinaryLabelmap(segNode, segmentId, volumeNode)
 
-        volumeNode: vtkMRMLScalarVolumeNode = self.scriptedEffect.parameterSetNode().GetSourceVolumeNode()
         IJKToRAS = np.zeros((3, 3))
         volumeNode.GetIJKToRASDirections(IJKToRAS)
         KJIToRAS = IJKToRAS.copy()
@@ -121,7 +121,7 @@ class SegmentationLogic:
         resultSegment = self.updateSlice(resultSegment, y, k)
         resultSegment = self.invertAxisReordering(resultSegment, KJIToRAS)
 
-        slicer.util.updateSegmentBinaryLabelmapFromArray(resultSegment, segNode, segmentId)
+        slicer.util.updateSegmentBinaryLabelmapFromArray(resultSegment, segNode, segmentId, volumeNode)
 
     def thresholdPrediction(self, prediction: "torch.Tensor", threshold=0.5):
         prediction[prediction < threshold] = 0
@@ -153,10 +153,10 @@ class SegmentationLogic:
 
         # Getting the different arrays
         # Array from slicer.util are K-J-I indexed
-        resultSegment = slicer.util.arrayFromSegmentBinaryLabelmap(segNode, segmentId)
-        imageArray = slicer.util.arrayFromVolume(volumeNode).copy()  # TODO select appropriate axis
-        posArray = slicer.util.arrayFromSegmentBinaryLabelmap(segNode, posSegId)
-        negArray = slicer.util.arrayFromSegmentBinaryLabelmap(segNode, negSegId)
+        resultSegment = slicer.util.arrayFromSegmentBinaryLabelmap(segNode, segmentId, volumeNode)
+        imageArray = slicer.util.arrayFromVolume(volumeNode).copy()
+        posArray = slicer.util.arrayFromSegmentBinaryLabelmap(segNode, posSegId, volumeNode)
+        negArray = slicer.util.arrayFromSegmentBinaryLabelmap(segNode, negSegId, volumeNode)
 
         # Reorder axis to be R-A-S indexed
         imageArray = self.reorderAxisToRAS(imageArray, KJIToRAS)
@@ -227,10 +227,10 @@ class SegmentationLogic:
 
         # Getting the different arrays
         # Array from slicer.util are K-J-I indexed
-        resultSegment = slicer.util.arrayFromSegmentBinaryLabelmap(segNode, segmentId)
+        resultSegment = slicer.util.arrayFromSegmentBinaryLabelmap(segNode, segmentId, volumeNode)
         imageArray = slicer.util.arrayFromVolume(volumeNode).copy()
-        posArray = slicer.util.arrayFromSegmentBinaryLabelmap(segNode, posSegId)
-        negArray = slicer.util.arrayFromSegmentBinaryLabelmap(segNode, negSegId)
+        posArray = slicer.util.arrayFromSegmentBinaryLabelmap(segNode, posSegId, volumeNode)
+        negArray = slicer.util.arrayFromSegmentBinaryLabelmap(segNode, negSegId, volumeNode)
 
         # Reorder axis to be R-A-S indexed
         imageArray = self.reorderAxisToRAS(imageArray, KJIToRAS)
@@ -250,10 +250,10 @@ class SegmentationLogic:
         negTensor = torch.from_numpy(negArray)
 
         # Pre process
-        imageTensor = self.preprocessVolume(imageTensor[None])[0, 0]
-        posTensor = self.preprocessVolume(posTensor[None], isSegmentation=True)[0, 0]
-        negTensor = self.preprocessVolume(negTensor[None], isSegmentation=True)[0, 0]
-        prevPredTensor = self.preprocessVolume(prevPredTensor[None], isSegmentation=True)[0, 0]
+        imageTensor = self.preprocessVolume(imageTensor[None])[0]
+        posTensor = self.preprocessVolume(posTensor[None], isSegmentation=True)[0]
+        negTensor = self.preprocessVolume(negTensor[None], isSegmentation=True)[0]
+        prevPredTensor = self.preprocessVolume(prevPredTensor[None], isSegmentation=True)[0]
 
         progressDialog = qt.QProgressDialog("Running 3d prediction...", "Abort prediction", startSlice - 1, endSlice)
         progressDialog.setWindowModality(qt.Qt.ApplicationModal)
@@ -293,7 +293,7 @@ class SegmentationLogic:
             slicer.app.processEvents()
 
         resultSegment = self.invertAxisReordering(resultSegment, KJIToRAS)
-        slicer.util.updateSegmentBinaryLabelmapFromArray(resultSegment, segNode, segmentId)
+        slicer.util.updateSegmentBinaryLabelmapFromArray(resultSegment, segNode, segmentId, volumeNode)
 
     def getCurrentSliceIndex(self, sliceColor):
         sliceNodeID = f"vtkMRMLSliceNode{sliceColor}"
@@ -345,6 +345,7 @@ class SegmentationLogic:
         return array
 
     def preprocessSlice(self, slice: "torch.Tensor", isSegmentation=False):
+        # Slice of dim  of shape 1*W*H
         import torch
         import torchvision.transforms.v2 as torchviz
         if isSegmentation:
@@ -360,10 +361,10 @@ class SegmentationLogic:
             result -= torch.min(result)
             result /= torch.max(result)
 
-        return result
+        return result # 1*W*H
 
     def preprocessVolume(self, volume: "torch.Tensor", isSegmentation=False):
-        # volume indexed RAS
+        # volume indexed RAS of shape 1*X*Y*Z
         import torch
         if isSegmentation:
             targetDtype = torch.bool
@@ -393,4 +394,4 @@ class SegmentationLogic:
             result -= torch.min(result)
             result /= torch.max(result)
 
-        return result
+        return result[0] # 1*X*Y*Z

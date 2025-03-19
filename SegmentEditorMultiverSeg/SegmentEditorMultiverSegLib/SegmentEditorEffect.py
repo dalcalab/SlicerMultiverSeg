@@ -45,8 +45,7 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         return qt.QIcon()
 
     def getIconPath(self, iconName: str):
-        return pathlib.Path(__file__).parent.joinpath(
-            f"../Resources/Icons/{iconName}").resolve()
+        return pathlib.Path(__file__).parent.joinpath(f"../Resources/Icons/{iconName}").resolve()
 
     def createIconButton(self, iconName, isCheckable=False, toolTip=''):
         b = qt.QPushButton()
@@ -131,7 +130,7 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         self.addTaskButton.connect("clicked()", self.addTask)
         self.removeTaskButton.connect("clicked()", self.removeTask)
         self.importTaskButton.connect("clicked()", self.importContext)
-        self.exportTaskButton.connect("clicked()", self.contextLogic.exportContext)
+        self.exportTaskButton.connect("clicked()", self.exportContext)
         self.renameTaskButton.connect("clicked()", self.renameTask)
         self.addContextExampleButton.connect("clicked()", self.addImageToContext)
         self.removeContextExampleButton.connect("clicked()",  # TODO: Add action to delete image button
@@ -160,7 +159,7 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
     def onInit(self):
         # Called when click "initialize" button
 
-        #Installation of PyTorch Utils extension used to install pytorch
+        # Installation of PyTorch Utils extension used to install pytorch
         canContinue = DependenciesLogic.installPyTorchExtensionIfNeeded()
         if not canContinue:
             return
@@ -329,17 +328,15 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
 
         if dialog.exec():
             # Add the image on dialog validation
-            self.contextLogic.saveNewExample(currentVolume,
-                                             currentView,
-                                             segmentComboBox.currentText,
-                                             currentSegmentationNode,
-                                             self.segmentationLogic)
+            self.contextLogic.saveNewExample(currentVolume, currentView, segmentComboBox.currentText,
+                                             currentSegmentationNode, self.segmentationLogic)
 
         currentSegmentationNode.GetDisplayNode().SetAllSegmentsVisibility(True)
 
     def importContext(self):
 
-        contextName = self.contextLogic.importContext()
+        fileName = qt.QFileDialog().getOpenFileName(None, "Import context", ".", "*.zip")
+        contextName = self.contextLogic.importContext(fileName)
 
         if contextName != '':
             self.contextComboBox.addItem(contextName)
@@ -369,11 +366,9 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
             self.contextComboBox.setCurrentIndex(0)
 
     def renameTask(self):
-        newName = qt.QInputDialog().getText(None,
-                                            "Rename task",
+        newName = qt.QInputDialog().getText(None, "Rename task",
                                             f"New name for task {self.contextComboBox.currentText}:",
-                                            qt.QLineEdit().Normal,
-                                            self.contextComboBox.currentText)
+                                            qt.QLineEdit().Normal, self.contextComboBox.currentText)
         if newName != '':
 
             currentId = self.contextComboBox.currentIndex
@@ -381,3 +376,10 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
                 self.contextComboBox.removeItem(currentId)
                 self.contextComboBox.addItem(newName)
                 self.contextComboBox.setCurrentText(newName)
+
+    def exportContext(self):
+        dir = qt.QFileDialog().getExistingDirectory(None, "Export to:", ".",
+                                                    qt.QFileDialog().ShowDirsOnly + qt.QFileDialog().ReadOnly)
+
+        if dir:
+            self.contextLogic.exportContext(dir)
