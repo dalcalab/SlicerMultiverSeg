@@ -282,8 +282,9 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
     def addImageDialog(self):
         # Create and handle the dialog to add an image to a context
 
-        def onSegmentSelectionChange(segmentID):
+        def onSegmentSelectionChange(segmentName):
             displayNode: vtkMRMLSegmentationDisplayNode = currentSegmentationNode.GetDisplayNode()
+            segmentID = currentSegmentationNode.GetSegmentation().GetSegmentIdBySegmentName(segmentName)
             displayNode.SetAllSegmentsVisibility(False)
             displayNode.SetSegmentVisibility(segmentID, True)
 
@@ -295,11 +296,13 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         currentVolume = self.scriptedEffect.parameterSetNode().GetSourceVolumeNode()
         currentView = self.viewComboBox.currentText
         currentSegmentationNode = self.scriptedEffect.parameterSetNode().GetSegmentationNode()
-        availableSegments = currentSegmentationNode.GetSegmentation().GetSegmentIDs()
+        availableSegmentsID = currentSegmentationNode.GetSegmentation().GetSegmentIDs()
+        availableSegmentsNames = list(
+            map(lambda x: currentSegmentationNode.GetSegmentation().GetSegment(x).GetName(), availableSegmentsID))
 
         # Create the combo box for segment selection
         segmentComboBox = qt.QComboBox()
-        segmentComboBox.addItems(availableSegments)
+        segmentComboBox.addItems(availableSegmentsNames)
 
         # Labels to indicate the currently selected nodes/objects
         l = qt.QLabel(f"Current volume: {currentVolume.GetName()}")
@@ -335,8 +338,9 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
 
         if dialog.exec():
             # Add the image on dialog validation
-            self.contextLogic.saveNewExample(currentVolume, currentView, segmentComboBox.currentText,
-                                             currentSegmentationNode, self.segmentationLogic)
+            segmentId = currentSegmentationNode.GetSegmentation().GetSegmentIdBySegmentName(segmentComboBox.currentText)
+            self.contextLogic.saveNewExample(currentVolume, currentView, segmentId, currentSegmentationNode,
+                                             self.segmentationLogic)
 
         currentSegmentationNode.GetDisplayNode().SetAllSegmentsVisibility(True)
 
