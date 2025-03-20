@@ -2,7 +2,6 @@ import os
 import pathlib
 
 import numpy as np
-import qt
 import slicer
 
 from MRMLCorePython import vtkMRMLVolumeNode, vtkMRMLSegmentationNode

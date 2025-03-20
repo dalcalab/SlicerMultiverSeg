@@ -1,5 +1,4 @@
 import pathlib
-import sys
 
 import slicer.util
 from MRMLLogicPython import vtkMRMLSliceLogic
