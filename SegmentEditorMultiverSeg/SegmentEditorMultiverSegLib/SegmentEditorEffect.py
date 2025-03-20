@@ -343,7 +343,7 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         # Create and handle the dialog to remove an image from a context
 
         dialog = qt.QDialog()
-        dialog.setWindowTitle("Image")
+        dialog.setWindowTitle("Select the example to remove")
         layout = qt.QVBoxLayout()
 
         l = qt.QLabel(f"Select which example to remove:")
