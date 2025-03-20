@@ -330,6 +330,7 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         layout.addWidget(buttonBox)
 
         segmentComboBox.connect("currentTextChanged(QString)", onSegmentSelectionChange)
+        onSegmentSelectionChange(segmentComboBox.currentText)
         dialog.setLayout(layout)
 
         if dialog.exec():
