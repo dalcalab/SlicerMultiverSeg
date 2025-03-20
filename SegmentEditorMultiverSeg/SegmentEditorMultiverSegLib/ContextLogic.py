@@ -1,3 +1,4 @@
+import os
 import pathlib
 
 import numpy as np
@@ -86,6 +87,20 @@ class ContextLogic:
 
         torchvision.utils.save_image(imageTensor, contextPath.joinpath(f"image_{n}.png"))
         torchvision.utils.save_image(maskTensor.to(torch.float16) * 255, contextPath.joinpath(f"mask_{n}.png"))
+
+    def removeExample(self, exampleNumber: int):
+
+        assert self.activeContext is not None, "A context must be selected to proceed"
+
+        contextPath = self.contextRootPath.joinpath(self.activeContext)
+        imagePath = contextPath.joinpath(f"image_{exampleNumber}.png")
+        maskPath = contextPath.joinpath(f"mask_{exampleNumber}.png")
+
+        if not (imagePath.is_file() and maskPath.is_file()):
+            raise FileNotFoundError(f"{imagePath} or {maskPath} was not found.")
+
+        os.remove(imagePath)
+        os.remove(maskPath)
 
     def exportContext(self, dir: str):
         assert self.activeContext is not None, "A context must be selected to export"

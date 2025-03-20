@@ -133,8 +133,7 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         self.exportTaskButton.connect("clicked()", self.exportContext)
         self.renameTaskButton.connect("clicked()", self.renameTask)
         self.addContextExampleButton.connect("clicked()", self.addImageToContext)
-        self.removeContextExampleButton.connect("clicked()",  # TODO: Add action to delete image button
-                                                lambda: print("Functionality not yet implemented", file=sys.stderr))
+        self.removeContextExampleButton.connect("clicked()", self.removeImageFromContext)
 
         # Connect other component actions
         self.contextComboBox.connect("currentIndexChanged(int)", self.handleTaskChange)
@@ -273,6 +272,13 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         self.addImageDialog()
         self.changeViewLayout(initialLayout)  # Restore the layout
 
+    def removeImageFromContext(self):
+        imageToRemove = self.removeImageDialog()
+        if imageToRemove == -1:
+            return
+
+        self.contextLogic.removeExample(imageToRemove)
+
     def addImageDialog(self):
         # Create and handle the dialog to add an image to a context
 
@@ -332,6 +338,75 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
                                              currentSegmentationNode, self.segmentationLogic)
 
         currentSegmentationNode.GetDisplayNode().SetAllSegmentsVisibility(True)
+
+    def removeImageDialog(self):
+        # Create and handle the dialog to remove an image from a context
+
+        dialog = qt.QDialog()
+        dialog.setWindowTitle("Select the example to remove")
+        layout = qt.QVBoxLayout()
+
+        l = qt.QLabel(f"Select which example to remove:")
+        layout.addWidget(l)
+
+        contextPath = self.contextLogic.contextRootPath.joinpath(self.contextLogic.activeContext)
+        contextContent = contextPath.glob(("image*"))
+        contextNumbers = sorted(map(lambda x: int(x.stem[6:]), contextContent))
+        imageNames = list(map(lambda x: f"Image #{x}", contextNumbers))
+
+        imageComboBox = qt.QComboBox()
+        imageComboBox.addItems(imageNames)
+        layout.addWidget(imageComboBox)
+
+        imagePreview = qt.QLabel()
+
+        def blendImages(base: qt.QImage, mask: qt.QImage):
+            result = base.copy()
+
+            width = base.width()
+            height = base.height()
+
+            for y in range(height):
+                for x in range(width):
+
+                    overlayColor = mask.pixelColor(x, y)
+                    if overlayColor == qt.QColor("white"):
+                        redBaseColor = base.pixelColor(x, y).red()
+                        result.setPixelColor(x, y, qt.QColor(redBaseColor, 0, 0))
+
+            return result
+
+        image = qt.QImage(contextPath.joinpath(f"image_{contextNumbers[0]}.png").resolve())
+        mask = qt.QImage(contextPath.joinpath(f"mask_{contextNumbers[0]}.png").resolve())
+
+        imagePreview.setPixmap(qt.QPixmap().fromImage(blendImages(image, mask)))
+        imagePreview.setAlignment(qt.Qt.AlignCenter)
+        layout.addWidget(imagePreview)
+
+        def changePreviewImage(name):
+            imageNumber = int(name.split("#")[1])
+            i = qt.QImage(contextPath.joinpath(f"image_{imageNumber}.png").resolve())
+            m = qt.QImage(contextPath.joinpath(f"mask_{imageNumber}.png").resolve())
+            imagePreview.setPixmap(qt.QPixmap().fromImage(blendImages(i, m)))
+
+        imageComboBox.connect("currentTextChanged(QString)", changePreviewImage)
+
+        # Dialog buttons
+        buttonBox = qt.QDialogButtonBox()
+        buttonBox.addButton(buttonBox.Cancel)
+        deleteButton = buttonBox.addButton("Delete", buttonBox.DestructiveRole)
+        buttonBox.rejected.connect(dialog.reject)
+        deleteButton.connect("clicked()", dialog.accept)
+        layout.addWidget(buttonBox)
+
+        dialog.setLayout(layout)
+
+        while dialog.exec() == 1:
+            if slicer.util.confirmYesNoDisplay(
+                    "Are you sure you want to delete this image ?\nThis action is irreversible.",
+                    "Delete this image ?"):
+                return int(imageComboBox.currentText.split('#')[1])  # Number of image to delete
+        return -1
 
     def importContext(self):
 
