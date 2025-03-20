@@ -191,3 +191,29 @@ class ContextLogicTestCase(unittest.TestCase):
         self.assertTrue(res)
         self.assertFalse(newPath.is_dir())
         self.assertTrue(oldPath.is_dir())
+
+    def test_removeImage(self):
+        logic = ContextLogic(None)
+        logic.contextRootPath = Path(__file__).parent.joinpath("../TestData/Context").resolve()
+
+        self.assertRaises(AssertionError, logic.removeExample, 0)
+
+        logic.activeContext = "empty_context"
+        self.assertRaises(FileNotFoundError, logic.removeExample, 0)
+
+        logic.activeContext = "context_1"
+
+        contextPath = Path(__file__).parent.joinpath("../TestData/Context/context_1").resolve()
+        self.assertTrue(contextPath.joinpath("image_3.png").is_file() and contextPath.joinpath("mask_3.png").is_file())
+
+        import shutil
+        shutil.copyfile(contextPath.joinpath("image_3.png"), contextPath.joinpath("image_4.png"))
+        shutil.copyfile(contextPath.joinpath("mask_3.png"), contextPath.joinpath("mask_4.png"))
+
+        logic.removeExample(3)
+
+        self.assertFalse(contextPath.joinpath("image_3.png").is_file() or contextPath.joinpath("mask_3.png").is_file())
+
+        shutil.move(contextPath.joinpath("image_4.png"), contextPath.joinpath("image_3.png"))
+        shutil.move(contextPath.joinpath("mask_4.png"), contextPath.joinpath("mask_3.png"))
+
