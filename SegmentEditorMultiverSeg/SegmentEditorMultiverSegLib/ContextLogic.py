@@ -2,7 +2,6 @@ import os
 import pathlib
 
 import numpy as np
-import qt
 import slicer
 
 from MRMLCorePython import vtkMRMLVolumeNode, vtkMRMLSegmentationNode
@@ -109,6 +108,10 @@ class ContextLogic:
             return False
 
         import shutil
+
+        if pathlib.Path(dir).joinpath(self.activeContext+".zip").is_file():
+            raise FileExistsError(f"File {self.activeContext}.zip already exist")
+
         shutil.make_archive(pathlib.Path(dir).joinpath(self.activeContext), "zip",
                             root_dir=self.contextRootPath.joinpath(self.activeContext))
         return True

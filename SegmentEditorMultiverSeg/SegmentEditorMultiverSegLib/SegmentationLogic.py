@@ -2,12 +2,11 @@ import pathlib
 import typing
 from typing import Optional
 
-import qt
-
 import numpy as np
 import slicer
 
 from MRMLCorePython import vtkMRMLSegmentationNode, vtkMRMLScalarVolumeNode, vtkMRMLSliceNode
+from numpy.ma.core import maximum
 from vtkSegmentationCorePython import vtkSegment, vtkSegmentation
 
 if typing.TYPE_CHECKING:
@@ -255,9 +254,12 @@ class SegmentationLogic:
         negTensor = self.preprocessVolume(negTensor[None], isSegmentation=True)[0]
         prevPredTensor = self.preprocessVolume(prevPredTensor[None], isSegmentation=True)[0]
 
-        progressDialog = qt.QProgressDialog("Running 3d prediction...", "Abort prediction", startSlice - 1, endSlice)
-        progressDialog.setWindowModality(qt.Qt.ApplicationModal)
-        progressDialog.setValue(startSlice - 1)
+        progressDialog = slicer.util.createProgressDialog(value=startSlice - 1,
+                                                          minimum=startSlice - 1,
+                                                          maximum=endSlice,
+                                                          labelText="Running 3d prediction...",
+                                                          windowModality=2 # qt.Qt.ApplicationModal
+                                                          )
 
         linspace = np.linspace(self.sliceOffsetRange[0],
                                self.sliceOffsetRange[1],
@@ -289,6 +291,7 @@ class SegmentationLogic:
             progressDialog.setValue(sliceNumber)
 
             if progressDialog.wasCanceled:
+                progressDialog.close()
                 break
             slicer.app.processEvents()
 
@@ -361,7 +364,7 @@ class SegmentationLogic:
             result -= torch.min(result)
             result /= torch.max(result)
 
-        return result # 1*W*H
+        return result  # 1*W*H
 
     def preprocessVolume(self, volume: "torch.Tensor", isSegmentation=False):
         # volume indexed RAS of shape 1*X*Y*Z
@@ -394,4 +397,4 @@ class SegmentationLogic:
             result -= torch.min(result)
             result /= torch.max(result)
 
-        return result[0] # 1*X*Y*Z
+        return result[0]  # 1*X*Y*Z

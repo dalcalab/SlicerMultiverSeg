@@ -1,5 +1,4 @@
 import pathlib
-import sys
 
 import slicer.util
 from MRMLLogicPython import vtkMRMLSliceLogic
@@ -282,8 +281,9 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
     def addImageDialog(self):
         # Create and handle the dialog to add an image to a context
 
-        def onSegmentSelectionChange(segmentID):
+        def onSegmentSelectionChange(segmentName):
             displayNode: vtkMRMLSegmentationDisplayNode = currentSegmentationNode.GetDisplayNode()
+            segmentID = currentSegmentationNode.GetSegmentation().GetSegmentIdBySegmentName(segmentName)
             displayNode.SetAllSegmentsVisibility(False)
             displayNode.SetSegmentVisibility(segmentID, True)
 
@@ -295,11 +295,13 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         currentVolume = self.scriptedEffect.parameterSetNode().GetSourceVolumeNode()
         currentView = self.viewComboBox.currentText
         currentSegmentationNode = self.scriptedEffect.parameterSetNode().GetSegmentationNode()
-        availableSegments = currentSegmentationNode.GetSegmentation().GetSegmentIDs()
+        availableSegmentsID = currentSegmentationNode.GetSegmentation().GetSegmentIDs()
+        availableSegmentsNames = list(
+            map(lambda x: currentSegmentationNode.GetSegmentation().GetSegment(x).GetName(), availableSegmentsID))
 
         # Create the combo box for segment selection
         segmentComboBox = qt.QComboBox()
-        segmentComboBox.addItems(availableSegments)
+        segmentComboBox.addItems(availableSegmentsNames)
 
         # Labels to indicate the currently selected nodes/objects
         l = qt.QLabel(f"Current volume: {currentVolume.GetName()}")
@@ -330,12 +332,14 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         layout.addWidget(buttonBox)
 
         segmentComboBox.connect("currentTextChanged(QString)", onSegmentSelectionChange)
+        onSegmentSelectionChange(segmentComboBox.currentText)
         dialog.setLayout(layout)
 
         if dialog.exec():
             # Add the image on dialog validation
-            self.contextLogic.saveNewExample(currentVolume, currentView, segmentComboBox.currentText,
-                                             currentSegmentationNode, self.segmentationLogic)
+            segmentId = currentSegmentationNode.GetSegmentation().GetSegmentIdBySegmentName(segmentComboBox.currentText)
+            self.contextLogic.saveNewExample(currentVolume, currentView, segmentId, currentSegmentationNode,
+                                             self.segmentationLogic)
 
         currentSegmentationNode.GetDisplayNode().SetAllSegmentsVisibility(True)
 
@@ -411,11 +415,16 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
     def importContext(self):
 
         fileName = qt.QFileDialog().getOpenFileName(None, "Import context", ".", "*.zip")
-        contextName = self.contextLogic.importContext(fileName)
-
-        if contextName != '':
-            self.contextComboBox.addItem(contextName)
-            self.contextComboBox.setCurrentText(contextName)
+        try:
+            contextName = self.contextLogic.importContext(fileName)
+            if contextName != '':
+                self.contextComboBox.addItem(contextName)
+                self.contextComboBox.setCurrentText(contextName)
+        except FileNotFoundError:
+            slicer.util.errorDisplay(f"The file {fileName} could not be found.", "Import failed")
+        except IsADirectoryError:
+            taskName = pathlib.Path(fileName).stem
+            slicer.util.errorDisplay(f"A task named {taskName} already exist.", "Import failed")
 
     def addTask(self):
         name = qt.QInputDialog().getText(None, "New task", "Name of the task:")
@@ -425,16 +434,14 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
             if self.contextLogic.createTask(name):
                 self.contextComboBox.addItem(name)
                 self.contextComboBox.setCurrentText(name)
+            else:
+                slicer.util.errorDisplay(f"Task creation failed because a task with the name name already exist.",
+                                         "Creation failed")
 
     def removeTask(self):
 
-        msgBox = qt.QMessageBox()
-        msgBox.setText(f"You are sure you want to delete the task {self.contextComboBox.currentText}?")
-        msgBox.setInformativeText("This action is irreversible.")
-        msgBox.setStandardButtons(msgBox.Ok + msgBox.Cancel)
-        msgBox.setDefaultButton(msgBox.Cancel)
-
-        if msgBox.exec():
+        if slicer.util.confirmYesNoDisplay("Are you sure you want to delete this task ?\nThis action is irreversible.",
+                                           "Delete this task ?"):
             currentId = self.contextComboBox.currentIndex
             self.contextLogic.deleteCurrentTask()
             self.contextComboBox.removeItem(currentId)
@@ -451,10 +458,20 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
                 self.contextComboBox.removeItem(currentId)
                 self.contextComboBox.addItem(newName)
                 self.contextComboBox.setCurrentText(newName)
+            else:
+                slicer.util.errorDisplay(f"A task named {newName} already exist.", "Error")
 
     def exportContext(self):
         dir = qt.QFileDialog().getExistingDirectory(None, "Export to:", ".",
                                                     qt.QFileDialog().ShowDirsOnly + qt.QFileDialog().ReadOnly)
 
         if dir:
-            self.contextLogic.exportContext(dir)
+            try:
+                res = self.contextLogic.exportContext(dir)
+                if res:
+                    slicer.util.infoDisplay("Task exported successfully!", "Task exported")
+                else:
+                    slicer.util.errorDisplay("Task exported failed.", "Export failed")
+            except FileExistsError:
+                slicer.util.errorDisplay(f"The file {self.contextLogic.activeContext}.zip already exist.",
+                                         "Export failed")
