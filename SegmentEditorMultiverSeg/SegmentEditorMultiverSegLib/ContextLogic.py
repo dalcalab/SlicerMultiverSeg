@@ -109,6 +109,10 @@ class ContextLogic:
             return False
 
         import shutil
+
+        if pathlib.Path(dir).joinpath(self.activeContext+".zip").is_file():
+            raise FileExistsError(f"File {self.activeContext}.zip already exist")
+
         shutil.make_archive(pathlib.Path(dir).joinpath(self.activeContext), "zip",
                             root_dir=self.contextRootPath.joinpath(self.activeContext))
         return True
