@@ -277,6 +277,8 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         if imageToRemove == -1:
             return
 
+        self.contextLogic.removeExample(imageToRemove)
+
     def addImageDialog(self):
         # Create and handle the dialog to add an image to a context
 
