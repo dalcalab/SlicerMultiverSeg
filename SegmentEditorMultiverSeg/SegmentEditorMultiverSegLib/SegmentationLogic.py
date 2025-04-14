@@ -60,14 +60,30 @@ class SegmentationLogic:
     def initModel(self):
         from .InstallLogic import InstallLogic, DependenciesLogic
 
-        if not DependenciesLogic.installDependenciesIfNeeded():
-            return False
+        progress = slicer.util.createProgressDialog(maximum=10, labelText="Verifying dependencies")
+        slicer.app.processEvents()
 
-        from multiverseg.models.sp_mvs import MultiverSeg
+        if not DependenciesLogic.installDependenciesIfNeeded():
+            progress.close()
+            return False
+        progress.value = 6
+        progress.labelText = "Loading ScribblePrompt"
+        slicer.app.processEvents()
+
         from scribbleprompt.models.unet import ScribblePromptUNet
 
+        progress.value = 8
+        progress.labelText = "Loading MultiverSeg"
+        slicer.app.processEvents()
+        from multiverseg.models.sp_mvs import MultiverSeg
+
         if not InstallLogic.downloadCheckpointsIfNeeded():
+            progress.close()
             return False
+
+        progress.value = 9
+        progress.labelText = "Initialisation of the model"
+        slicer.app.processEvents()
 
         # Update the path to the model weights
         MultiverSeg.weights["v0"] = pathlib.Path(__file__).parent.joinpath(
@@ -75,6 +91,8 @@ class SegmentationLogic:
         ScribblePromptUNet.weights["v1"] = pathlib.Path(__file__).parent.joinpath(
             "../Resources/Checkpoints/ScribblePrompt_unet_v1_nf192_res128.pt").resolve()
         self.model = MultiverSeg(version="v0")
+
+        progress.close()
         return True
 
     def reset(self):
@@ -258,7 +276,7 @@ class SegmentationLogic:
                                                           minimum=startSlice - 1,
                                                           maximum=endSlice,
                                                           labelText="Running 3d prediction...",
-                                                          windowModality=2 # qt.Qt.ApplicationModal
+                                                          windowModality=2  # qt.Qt.ApplicationModal
                                                           )
 
         linspace = np.linspace(self.sliceOffsetRange[0],
