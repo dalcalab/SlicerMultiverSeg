@@ -26,6 +26,8 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         self.segmentationLogic = SegmentationLogic(scriptedEffect)
         self.contextLogic = self.segmentationLogic.contextLogic
 
+        self.isInitialized = False
+
     def clone(self):
         # It should not be necessary to modify this method
         import qSlicerSegmentationsEditorEffectsPythonQt as effects
@@ -72,13 +74,13 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         contextSelectionLayer.addWidget(self.editTaskButton)
 
         # Warning for the user if no task is selected
-        self.warningEmptyTask = qt.QLabel("Warning: Segmenting without an active task can produce sub-optimal results")
+        self.warningEmptyTask = qt.QLabel("Warning: No context selected - Prediction disabled")
         self.warningEmptyTask.setWordWrap(True)
         self.warningEmptyTask.setForegroundRole(qt.QPalette.BrightText)
 
         # Warning for the user if the current task has empty context
         self.warningEmptyContext = qt.QLabel(
-            "Warning: Segmenting with an empty context (no examples) can produce sub-optimal results")
+            "Warning: Empty context - Prediction disabled")
         self.warningEmptyContext.setWordWrap(True)
         self.warningEmptyContext.setForegroundRole(qt.QPalette.BrightText)
 
@@ -174,9 +176,7 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         # Update the ui elements now enabled
         self.viewComboBox.setEnabled(False)
         self.initializeBtn.setEnabled(False)
-        self.predictBtn.setEnabled(True)
         self.doneBtn.setEnabled(True)
-        self.predict3dBtn.setEnabled(True)
         self.sliceRangeSelector.setEnabled(True)
 
         # Get the min/max offset for the view, and the spacing
@@ -200,6 +200,9 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         segmentEditorNode: vtkMRMLSegmentEditorNode = self.scriptedEffect.parameterSetNode()
         segmentEditorNode.SetOverwriteMode(segmentEditorNode.OverwriteNone)
 
+        self.isInitialized = True
+        self.handleTaskChange(self.contextComboBox.currentIndex)
+
     def changeViewLayout(self, layout=None):
         # Change the layout of the view
         # If layout is None, get the currently selected view color and set the layout to this view only
@@ -222,6 +225,7 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         self.doneBtn.setEnabled(False)
         self.predict3dBtn.setEnabled(False)
         self.sliceRangeSelector.setEnabled(False)
+        self.isInitialized = False
 
     def handleTaskChange(self, itemSelected: int):
         # Called when the selected task is changed
@@ -238,6 +242,9 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
             self.addContextExampleButton.setEnabled(False)
             self.renameTaskButton.setEnabled(False)
             self.exportTaskButton.setEnabled(False)
+            self.predictBtn.setEnabled(False)
+            self.predict3dBtn.setEnabled(False)
+            self.editTaskButton.setChecked(True)
         else:
             # Case where a task is selected
             self.contextLogic.activeContext = self.contextComboBox.currentText
@@ -248,6 +255,10 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
             self.addContextExampleButton.setEnabled(True)
             self.renameTaskButton.setEnabled(True)
             self.exportTaskButton.setEnabled(True)
+            self.predictBtn.setEnabled(self.contextLogic.getCurrentContextSize() != 0 and self.isInitialized)
+            self.predict3dBtn.setEnabled(self.contextLogic.getCurrentContextSize() != 0 and self.isInitialized)
+            self.editTaskButton.setChecked(
+                self.contextLogic.getCurrentContextSize() == 0 or self.addTaskButton.isVisible())
 
     def handleTaskEditionMode(self, toggled: bool):
         # Handle the visibility of task management buttons when task edition is toggled
