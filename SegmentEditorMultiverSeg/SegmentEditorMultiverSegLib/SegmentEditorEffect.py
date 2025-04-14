@@ -438,7 +438,10 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
             slicer.util.errorDisplay(f"A task named {taskName} already exist.", "Import failed")
 
     def addTask(self):
-        name = qt.QInputDialog().getText(None, "New task", "Name of the task:")
+        segmentation = self.scriptedEffect.parameterSetNode().GetSegmentationNode().GetSegmentation()
+        segmentID = self.scriptedEffect.parameterSetNode().GetSelectedSegmentID()
+        segName = segmentation.GetSegment(segmentID).GetName()
+        name = qt.QInputDialog().getText(None, "New task", "Name of the task:",0,segName)
 
         if name != "":
 
