@@ -16,6 +16,12 @@ class ContextLogic:
         self.contextRootPath = pathlib.Path(__file__).parent.joinpath("../Context").resolve()
         self.activeContext = None
 
+    def setContextRoot(self, path):
+        self.contextRootPath = path
+
+    def computeBaseContextRoot(self)->str:
+        return pathlib.Path(__file__).parent.joinpath("../Context").resolve().as_posix()
+
     def loadContext(self):
 
         import torch, torchvision

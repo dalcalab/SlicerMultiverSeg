@@ -69,9 +69,12 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         self.contextComboBox = qt.QComboBox()
         self.contextComboBox.addItems(["--None--"] + self.contextLogic.getContextList())
         self.editTaskButton = self.createIconButton("edit.png", True, toolTip="Edit the tasks and contexts")
+        self.chooseContextRoot = self.createIconButton("folder_tree.png",
+                                                       toolTip="Select a custom root directory for your tasks")
         contextSelectionLayer = qt.QHBoxLayout()
         contextSelectionLayer.addWidget(self.contextComboBox)
         contextSelectionLayer.addWidget(self.editTaskButton)
+        contextSelectionLayer.addWidget(self.chooseContextRoot)
 
         # Warning for the user if no task is selected
         self.warningEmptyTask = qt.QLabel("Warning: No context selected - Prediction disabled")
@@ -128,6 +131,7 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
 
         # Connect actions for task management
         self.editTaskButton.connect("toggled(bool)", self.handleTaskEditionMode)
+        self.chooseContextRoot.connect("clicked()", self.selectContextRoot)
         self.addTaskButton.connect("clicked()", self.addTask)
         self.removeTaskButton.connect("clicked()", self.removeTask)
         self.importTaskButton.connect("clicked()", self.importContext)
@@ -489,3 +493,42 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
             except FileExistsError:
                 slicer.util.errorDisplay(f"The file {self.contextLogic.activeContext}.zip already exist.",
                                          "Export failed")
+
+    def selectContextRoot(self):
+        self.contextRootSelectionDialog()
+
+        # Remove every task
+        self.contextComboBox.setCurrentIndex(0)
+        while self.contextComboBox.count > 1:
+            self.contextComboBox.removeItem(1)
+
+        self.contextComboBox.addItems(self.contextLogic.getContextList())
+
+    def contextRootSelectionDialog(self):
+
+        dialog = qt.QDialog()
+        dialog.setWindowTitle("Select tasks root")
+        layout = qt.QVBoxLayout(dialog)
+
+        text = qt.QLabel("Select the root directory for your tasks:")
+        layout.addWidget(text)
+
+        directoryButton = ctk.ctkDirectoryButton()
+        directoryButton.directory = self.contextLogic.contextRootPath
+        layout.addWidget(directoryButton)
+
+        buttons = qt.QDialogButtonBox()
+        buttons.addButton(buttons.Ok)
+        buttons.addButton(buttons.Cancel)
+        resetButton = buttons.addButton(buttons.Reset)
+        layout.addWidget(buttons)
+
+        buttons.rejected.connect(dialog.reject)
+        buttons.accepted.connect(dialog.accept)
+        resetButton.clicked.connect(lambda: updateDirectoryButton(self.contextLogic.computeBaseContextRoot()))
+
+        def updateDirectoryButton(path):
+            directoryButton.directory = path
+
+        if dialog.exec():
+            self.contextLogic.setContextRoot(pathlib.Path(directoryButton.directory))
