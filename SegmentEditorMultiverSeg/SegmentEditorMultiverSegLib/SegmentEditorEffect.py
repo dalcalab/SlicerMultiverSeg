@@ -114,7 +114,7 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         self.sliceRangeSelector.minimum = 0
 
         # Create the buttons for prediction and reset
-        self.predictBtn = qt.QPushButton("Make 2D prediction (Current slicer)")
+        self.predictBtn = qt.QPushButton("Make 2D prediction (current slice)")
         self.predict3dBtn = qt.QPushButton("Make 3D prediction")
         self.doneBtn = qt.QPushButton("Done")
 
