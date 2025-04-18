@@ -49,17 +49,3 @@ See more information in <a href="https://github.com/organization/projectname#Seg
         instance.self().register()
 
 
-class SegmentEditorMultiverSegTest(ScriptedLoadableModuleTest):
-    """
-    This is the test case for your scripted module.
-    Uses ScriptedLoadableModuleTest base class, available at:
-    https://github.com/Slicer/Slicer/blob/main/Base/Python/slicer/ScriptedLoadableModule.py
-    """
-
-    def setUp(self):
-        """Do whatever is needed to reset the state - typically a scene clear will be enough."""
-        slicer.mrmlScene.Clear()
-
-    def runTest(self):
-        """Run as few or as many tests as needed here."""
-        self.setUp()
