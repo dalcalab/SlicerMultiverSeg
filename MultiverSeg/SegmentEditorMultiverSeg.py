@@ -11,7 +11,7 @@ from slicer import vtkMRMLScalarVolumeNode
 
 
 #
-# SegmentEditorMultiverSeg
+# MultiverSeg
 #
 
 
@@ -22,7 +22,7 @@ class SegmentEditorMultiverSeg(ScriptedLoadableModule):
 
     def __init__(self, parent):
         ScriptedLoadableModule.__init__(self, parent)
-        self.parent.title = _("SegmentEditorMultiverSeg")  # TODO: make this more human readable by adding spaces
+        self.parent.title = _("MultiverSeg")  # TODO: make this more human readable by adding spaces
         # TODO: set categories (folders where the module shows up in the module selector)
         self.parent.categories = ["Segmentation"]
         self.parent.dependencies = ["Segmentations"]
