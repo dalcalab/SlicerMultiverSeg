@@ -5,13 +5,23 @@ set(MODULE_NAME SegmentEditorMultiverSeg)
 set(MODULE_PYTHON_SCRIPTS
   ${MODULE_NAME}.py
   ${MODULE_NAME}Lib/SegmentEditorEffect.py
+  ${MODULE_NAME}Lib/ContextLogic.py
+  ${MODULE_NAME}Lib/InstallLogic.py
+  ${MODULE_NAME}Lib/SegmentationLogic.py
   )
 
 set(MODULE_PYTHON_RESOURCES
   Resources/Icons/${MODULE_NAME}.png
+  Resources/Icons/add.png
+  Resources/Icons/addImage.png
   Resources/Icons/edit.png
-  Resources/UI/${MODULE_NAME}.ui
-  Resources/Checkpoints/MultiverSeg_v0_nf256_res128.pt
+  Resources/Icons/export.png
+  Resources/Icons/folder_tree.png
+  Resources/Icons/import.png
+  Resources/Icons/remove.png
+  Resources/Icons/removeImage.png
+  Resources/Icons/rename.png
+  Resources/Icons/SegmentEditorMultiverSeg.png
   )
 
 #-----------------------------------------------------------------------------
@@ -24,11 +34,6 @@ slicerMacroBuildScriptedModule(
 
 #-----------------------------------------------------------------------------
 if(BUILD_TESTING)
-
-  # Register the unittest subclass in the main script as a ctest.
-  # Note that the test will also be available at runtime.
-  slicer_add_python_unittest(SCRIPT ${MODULE_NAME}.py)
-
   # Additional build-time testing
   add_subdirectory(Testing)
 endif()

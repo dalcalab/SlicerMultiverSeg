@@ -1,0 +1,4 @@
+
+slicer_add_python_unittest(ContextLogicTestCase.py)
+slicer_add_python_unittest(EffectUITestCase.py)
+slicer_add_python_unittest(SegmentationLogicTestCase.py)
