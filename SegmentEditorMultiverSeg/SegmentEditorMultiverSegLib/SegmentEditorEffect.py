@@ -27,6 +27,7 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         self.contextLogic = self.segmentationLogic.contextLogic
 
         self.isInitialized = False
+        self.sew = None  # qMRMLSegmentEditorWidget
 
     def clone(self):
         # It should not be necessary to modify this method
@@ -55,6 +56,22 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         b.setSizePolicy(qt.QSizePolicy.Fixed, qt.QSizePolicy.Fixed)
         b.setToolTip(toolTip)
         return b
+
+    def sourceVolumeNodeChanged(self):
+        # Called
+        if self.sew is not None: return
+
+        self.sew = slicer.modules.segmenteditor.widgetRepresentation().self().editor
+        if self.sew is not None:
+            self.sew.connect("currentSegmentIDChanged(QString)", self.tryToPreselectTask)
+
+    def tryToPreselectTask(self, segmentID):
+        sen = self.scriptedEffect.parameterSetNode()  # SegmentEditorNode
+        assert segmentID == sen.GetSelectedSegmentID()
+        segmentation = self.scriptedEffect.parameterSetNode().GetSegmentationNode().GetSegmentation()
+        segName = segmentation.GetSegment(segmentID).GetName()
+
+        self.contextComboBox.setCurrentText(segName) # Does not change if segName do not exist
 
     def setupOptionsFrame(self):
         # First row: view selection and initialization
