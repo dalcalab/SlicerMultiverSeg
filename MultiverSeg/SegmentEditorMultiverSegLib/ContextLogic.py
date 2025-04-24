@@ -150,7 +150,7 @@ class ContextLogic:
         if destDir.is_dir():
             return False
 
-        destDir.mkdir()
+        destDir.mkdir(parents=True)
         return True
 
     def renameTask(self, newName):
