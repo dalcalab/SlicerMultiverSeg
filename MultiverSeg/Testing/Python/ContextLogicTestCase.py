@@ -75,15 +75,13 @@ class ContextLogicTestCase(unittest.TestCase):
         self.assertEqual(len(list(contextPath.glob("*"))), 2)
 
         import torchvision, torch
-        i = torchvision.io.decode_image(contextPath.joinpath("image_0.png"), mode=torchvision.io.ImageReadMode.GRAY)
-        m = torchvision.io.decode_image(contextPath.joinpath("mask_0.png"), mode=torchvision.io.ImageReadMode.GRAY)
+        i = logic.loadImage(contextPath.joinpath("image_0.png"))
+        m = logic.loadImage(contextPath.joinpath("mask_0.png"))
         self.assertSequenceEqual(i.shape, [1, 128, 128])
         self.assertSequenceEqual(m.shape, [1, 128, 128])
 
-        iTruth = torchvision.io.decode_image(ressourcePath.joinpath("image_0.png"),
-                                             mode=torchvision.io.ImageReadMode.GRAY)
-        mTruth = torchvision.io.decode_image(ressourcePath.joinpath("mask_0.png"),
-                                             mode=torchvision.io.ImageReadMode.GRAY)
+        iTruth = logic.loadImage(ressourcePath.joinpath("image_0.png"))
+        mTruth = logic.loadImage(ressourcePath.joinpath("mask_0.png"))
 
         diff = torch.abs(i - iTruth)
         self.assertEqual(torch.max(diff).item(), 0)
