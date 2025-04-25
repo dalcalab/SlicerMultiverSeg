@@ -22,9 +22,26 @@ class ContextLogic:
     def computeBaseContextRoot(self)->str:
         return pathlib.Path(__file__).parent.joinpath("../Context").resolve().as_posix()
 
+    def loadImage(self, path: pathlib.Path):
+        import torchvision
+        try:
+            from packaging.version import Version
+        except ModuleNotFoundError:
+            print("Installing packaging")
+            slicer.util.pip_install("packaging")
+            from packaging.version import Version
+
+        # Use different method depending on the torchvision version (changed in 0.18)
+        # Return a tensor
+        torchvisionVersion = Version(torchvision.__version__)
+        if torchvisionVersion >= Version("0.18"):
+            return torchvision.io.decode_image(path.as_posix(), mode=torchvision.io.ImageReadMode.GRAY)
+        else:
+            return torchvision.io.read_image(path.as_posix(), mode=torchvision.io.ImageReadMode.GRAY)
+
     def loadContext(self):
 
-        import torch, torchvision
+        import torch
 
         if self.activeContext is None or self.getCurrentContextSize() == 0:
             return None, None
@@ -33,8 +50,8 @@ class ContextLogic:
         contextImgs = sorted(contextPath.glob("image*"))
         contextLabels = sorted(contextPath.glob("mask*"))
 
-        i = [torchvision.io.decode_image(img, mode=torchvision.io.ImageReadMode.GRAY) for img in contextImgs]
-        l = [torchvision.io.decode_image(lab, mode=torchvision.io.ImageReadMode.GRAY) for lab in contextLabels]
+        i = [self.loadImage(img) for img in contextImgs]
+        l = [self.loadImage(lab) for lab in contextLabels]
         return torch.stack(i), torch.stack(l)  # (n*1*H*W), (n*1*H*W)
 
     def getContextList(self):
