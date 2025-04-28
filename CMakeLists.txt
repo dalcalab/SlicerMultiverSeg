@@ -4,11 +4,11 @@ project(MultiverSeg)
 
 #-----------------------------------------------------------------------------
 # Extension meta-information
-set(EXTENSION_HOMEPAGE "https://github.com/dalcalab/MultiverSegSlicer/tree/main#readme") # TODO Update when repo is renamed
+set(EXTENSION_HOMEPAGE "https://github.com/dalcalab/SlicerMultiverSeg/tree/main#readme")
 set(EXTENSION_CONTRIBUTORS "Sebastien Goll (Kitware SAS)")
 set(EXTENSION_DESCRIPTION "MultiverSeg is a model that enables users to rapidly segment new biomedical imaging datasets. This extension add a segmentation effect using that uses MultiverSeg.")
-set(EXTENSION_ICONURL "") # TODO Update when public
-set(EXTENSION_SCREENSHOTURLS "") # TODO Update when public
+set(EXTENSION_ICONURL "https://raw.githubusercontent.com/dalcalab/SlicerMultiverSeg/refs/heads/main/MultiverSeg/Resources/Icons/SegmentEditorMultiverSeg.png")
+set(EXTENSION_SCREENSHOTURLS "https://raw.githubusercontent.com/dalcalab/SlicerMultiverSeg/refs/heads/main/Screenshots/Demo_1.png https://raw.githubusercontent.com/dalcalab/SlicerMultiverSeg/refs/heads/main/Screenshots/Demo_2.png https://raw.githubusercontent.com/dalcalab/SlicerMultiverSeg/refs/heads/main/Screenshots/Demo_3.png")
 set(EXTENSION_DEPENDS "PyTorch") # Specified as a list or "NA" if no dependencies
 
 #-----------------------------------------------------------------------------
