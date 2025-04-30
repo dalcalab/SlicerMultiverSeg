@@ -56,6 +56,7 @@ class InstallLogic:
 
     @classmethod
     def _downloadModel(cls, modelName, modelURI):
+        cls.CKPT_DIR.mkdir(parents=True, exist_ok=True)
         modelPath = cls.CKPT_DIR.joinpath(modelName)
         slicer.progressWindow = slicer.util.createProgressDialog()
         slicer.progressWindow.setLabelText(f"Downloading {modelName.split('_')[0]} checkpoint...")
