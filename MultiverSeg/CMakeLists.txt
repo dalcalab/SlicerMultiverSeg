@@ -4,6 +4,7 @@ set(MODULE_NAME SegmentEditorMultiverSeg)
 #-----------------------------------------------------------------------------
 set(MODULE_PYTHON_SCRIPTS
   ${MODULE_NAME}.py
+  ${MODULE_NAME}Lib/__init__.py
   ${MODULE_NAME}Lib/SegmentEditorEffect.py
   ${MODULE_NAME}Lib/ContextLogic.py
   ${MODULE_NAME}Lib/InstallLogic.py
@@ -21,7 +22,6 @@ set(MODULE_PYTHON_RESOURCES
   Resources/Icons/remove.png
   Resources/Icons/removeImage.png
   Resources/Icons/rename.png
-  Resources/Icons/SegmentEditorMultiverSeg.png
   )
 
 #-----------------------------------------------------------------------------
