@@ -1,6 +1,7 @@
 import unittest
 from pathlib import Path
 
+import SampleData
 import slicer.util
 from SegmentEditorMultiverSegLib import ContextLogic, SegmentationLogic
 
@@ -63,7 +64,7 @@ class ContextLogicTestCase(unittest.TestCase):
         logic.activeContext = "empty_context"
 
         ressourcePath = Path(__file__).parent.joinpath("../TestData/SlicerData").resolve()
-        vol = slicer.util.loadVolume(ressourcePath.joinpath("1.nrrd"))
+        vol = SampleData.downloadSample("MRHead")
         seg = slicer.util.loadSegmentation(ressourcePath.joinpath("1.seg.nrrd"))
         segID = seg.GetSegmentation().GetNthSegmentID(0)
 

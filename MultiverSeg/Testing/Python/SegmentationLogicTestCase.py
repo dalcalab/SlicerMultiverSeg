@@ -2,6 +2,7 @@ import unittest
 from unittest.mock import Mock
 from pathlib import Path
 
+import SampleData
 import slicer.util
 import torch
 from SegmentEditorMultiverSegLib import SegmentationLogic
@@ -130,7 +131,7 @@ class SegmentationLogicTestCase(unittest.TestCase):
     def test_rawPredict(self):
         dataPath = Path(__file__).parent.joinpath("../TestData/SlicerData").resolve()
         segmentationNode = slicer.util.loadSegmentation(dataPath.joinpath("1.seg.nrrd"))
-        volNode = slicer.util.loadVolume(dataPath.joinpath("1.nrrd"))
+        volNode = SampleData.downloadSample("MRHead")
         segmentID = segmentationNode.GetSegmentation().GetNthSegmentID(0)
 
         scriptedEffectMock = Mock()
@@ -149,7 +150,7 @@ class SegmentationLogicTestCase(unittest.TestCase):
     def test_predict(self):
         dataPath = Path(__file__).parent.joinpath("../TestData/SlicerData").resolve()
         segmentationNode = slicer.util.loadSegmentation(dataPath.joinpath("1.seg.nrrd"))
-        volNode = slicer.util.loadVolume(dataPath.joinpath("1.nrrd"))
+        volNode = SampleData.downloadSample("MRHead")
         segmentID = segmentationNode.GetSegmentation().GetNthSegmentID(0)
 
         scriptedEffectMock = Mock()
@@ -167,7 +168,7 @@ class SegmentationLogicTestCase(unittest.TestCase):
     def test_3dPredict(self):
         dataPath = Path(__file__).parent.joinpath("../TestData/SlicerData").resolve()
         segmentationNode = slicer.util.loadSegmentation(dataPath.joinpath("1.seg.nrrd"))
-        volNode = slicer.util.loadVolume(dataPath.joinpath("1.nrrd"))
+        volNode = SampleData.downloadSample("MRHead")
         segmentID = segmentationNode.GetSegmentation().GetNthSegmentID(0)
 
         scriptedEffectMock = Mock()
