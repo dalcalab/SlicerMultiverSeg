@@ -1,5 +1,6 @@
 import unittest
 from pathlib import Path
+from unittest import SkipTest
 
 import SampleData
 import slicer.util
@@ -22,6 +23,11 @@ class ContextLogicTestCase(unittest.TestCase):
         self.assertEqual(logic.getCurrentContextSize(), 3)
 
     def test_loadContext(self):
+        try:
+            import torch
+        except ImportError:
+            raise SkipTest("PyTorch not available")
+
         logic = ContextLogic(None)
 
         res = logic.loadContext()
@@ -59,6 +65,12 @@ class ContextLogicTestCase(unittest.TestCase):
         self.assertEqual(nextN, 4)
 
     def test_saveNewExample(self):
+        try:
+            import torch
+            import torchvision
+        except ImportError:
+            raise SkipTest("PyTorch/torchvision not available")
+
         logic = ContextLogic(None)
         logic.contextRootPath = Path(__file__).parent.joinpath("../TestData/Context").resolve()
         logic.activeContext = "empty_context"

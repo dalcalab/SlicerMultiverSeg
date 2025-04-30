@@ -35,7 +35,6 @@ class SegmentEditorEffectUITest(ScriptedLoadableModuleTest):
 
     def test_sanity(self):
         self.assertIsNotNone(self.effect)
-        print(self.effect)
 
         self.assertIsInstance(self.effect, SegmentEditorEffect)
 
