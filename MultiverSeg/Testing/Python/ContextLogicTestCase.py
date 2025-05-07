@@ -9,6 +9,12 @@ from SegmentEditorMultiverSegLib import ContextLogic, SegmentationLogic
 
 class ContextLogicTestCase(unittest.TestCase):
 
+    @classmethod
+    def setUpClass(cls):
+        # Needed because empty directories are not clone with git
+        emptyContextPath = Path(__file__).parent.joinpath("../TestData/Context/empty_context").resolve()
+        emptyContextPath.mkdir(exist_ok=True)
+
     def test_instantiation(self):
         logic = ContextLogic(None)
 

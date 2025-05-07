@@ -55,13 +55,13 @@ class SegmentEditorEffectUITest(ScriptedLoadableModuleTest):
         self.assertFalse(self.effect.predict3dBtn.isEnabled())
 
         # Should be enabled after changing context since context size is 5
-        self.effect.contextComboBox.setCurrentIndex(1)
+        self.effect.handleTaskChange(1)
         self.assertTrue(self.effect.predictBtn.isEnabled())
         self.assertTrue(self.effect.predict3dBtn.isEnabled())
 
         # Should be disabled after changing context since context size is 0
         self.effect.contextLogic.getCurrentContextSize.return_value = 0
-        self.effect.contextComboBox.setCurrentIndex(2)
+        self.effect.handleTaskChange(2)
         self.assertFalse(self.effect.predictBtn.isEnabled())
         self.assertFalse(self.effect.predict3dBtn.isEnabled())
 
