@@ -1,5 +1,5 @@
 name: Testing
-run-name: ${{ github.event.pull_request.number && format('PR #{0}', github.event.pull_request.number) || format('Commit {0}', github.sha) }}
+run-name: ${{ github.event.pull_request.number && format('Pull request {0}', github.event.pull_request.number) || format('Commit {0}', github.sha) }}
 on:
   push:
     branches:
