@@ -1,7 +1,7 @@
 # SlicerMultiverSeg
 
 MultiverSeg is a model that enables users to rapidly segment new biomedical imaging datasets. This extension add a
-segmentation effect using that uses MultiverSeg.
+segmentation effect that uses MultiverSeg.
 
 ## MultiverSeg segmentation effect
 
