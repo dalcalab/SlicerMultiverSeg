@@ -24,6 +24,6 @@ runs:
   steps:
     - uses: ./.github/actions/slicer-run-python-script
       with:
-        script: ./.github/python_scripts/run_tests.py
+        script: ${{ github.action_path }}/run_tests.py
         slicer_dir: ${{ inputs.slicer_dir }}
         additional_arguments: --additional-module-paths ${{ inputs.module_paths }} ${{ inputs.additional_arguments }} ${{ inputs.tests_root_path }} ${{ inputs.tests_name_pattern }}
