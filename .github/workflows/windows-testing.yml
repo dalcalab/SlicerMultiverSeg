@@ -7,6 +7,8 @@ on:
   pull_request:
     branches:
       - main
+  workflow_dispatch:
+
 
 jobs:
   Tests-Windows:
@@ -37,4 +39,5 @@ jobs:
           tests_root_path: './MultiverSeg/Testing/Python'
           tests_name_pattern: '*TestCase.py'
           module_paths: './MultiverSeg'
+
 
