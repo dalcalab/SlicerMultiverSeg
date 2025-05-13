@@ -1,0 +1,25 @@
+name: install-slicer
+author: Sebastien Goll (Kitware SAS)
+description: Install 3D Slicer
+inputs:
+  version:
+    description: Version of Slicer available at https://community.chocolatey.org/packages/3dslicer#versionhistory
+    default: ''
+outputs:
+  slicer_folder:
+    description: Installation folder for Slicer
+    value: ${{ steps.slicer_folder.outputs.slicer_folder }}
+
+runs:
+  using: composite
+  steps:
+    - if: ${{runner.os == 'Windows'}}
+      run: choco install 3dslicer -y --version=${{ inputs.version }} --allowdowngrade
+      shell: bash
+    - if: ${{runner.os == 'Windows'}}
+      id: slicer_folder
+      shell: bash
+      run: |
+        folder=$(find "C:/ProgramData/slicer.org" -maxdepth 1 -type d -name Slicer* -exec stat --format "%Y %n" {} + |sort -nr | head -n1 | cut -d' ' -f2-)
+        echo "slicer_folder=$folder" >> $GITHUB_OUTPUT
+
