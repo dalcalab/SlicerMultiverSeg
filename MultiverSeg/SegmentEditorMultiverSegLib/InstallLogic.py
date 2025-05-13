@@ -14,6 +14,8 @@ class InstallLogic:
     SCRIBBLEPROMPT_FILE_NAME = "ScribblePrompt_unet_v1_nf192_res128.pt"
     SCRIBBLEPROMPT_DOWNLOAD_URL = "https://www.dropbox.com/scl/fi/pnw88n05irnv5z1snlklr/ScribblePrompt_unet_v1_nf192_res128.pt?rlkey=dr8xvkf0wj2r082h1zzpcmz5o&dl=1"
 
+    INTERACTIVE_MODE = True  # Can the user interact with the window
+
     @classmethod
     def downloadCheckpointsIfNeeded(cls):
         try:
@@ -32,7 +34,8 @@ class InstallLogic:
         modelPath = cls.CKPT_DIR.joinpath("MultiverSeg_v0_nf256_res128.pt")
 
         if not modelPath.is_file():
-            if slicer.util.confirmOkCancelDisplay("The MultiverSeg model is required. Confirm to download (74MB)."):
+            if (not cls.INTERACTIVE_MODE) or slicer.util.confirmOkCancelDisplay(
+                    "The MultiverSeg model is required. Confirm to download (74MB)."):
 
                 cls._downloadModel(cls.MULTIVERSEG_FILE_NAME, cls.MULTIVERSEG_DOWNLOAD_URL)
                 return True  # Model downloaded correctly
@@ -45,7 +48,7 @@ class InstallLogic:
         modelPath = cls.CKPT_DIR.joinpath(cls.SCRIBBLEPROMPT_FILE_NAME)
 
         if not modelPath.is_file():
-            if slicer.util.confirmOkCancelDisplay("The ScribblePrompt model is required. Confirm to download (16MB)."):
+            if (not cls.INTERACTIVE_MODE) or slicer.util.confirmOkCancelDisplay("The ScribblePrompt model is required. Confirm to download (16MB)."):
 
                 cls._downloadModel(cls.SCRIBBLEPROMPT_FILE_NAME, cls.SCRIBBLEPROMPT_DOWNLOAD_URL)
 
@@ -89,6 +92,7 @@ class InstallLogic:
 
 
 class DependenciesLogic:
+    INTERACTIVE_MODE = True  # Can the user interact with the window
 
     # Install dependencies to torch and multiverseg if not already installed
     @classmethod
@@ -114,7 +118,7 @@ class DependenciesLogic:
             import PyTorchUtils  # noqa
             return True
         except ModuleNotFoundError:
-            ret = slicer.util.confirmOkCancelDisplay("""This module requires PyTorch extension. Would you like to install it?
+            ret = (not cls.INTERACTIVE_MODE) or slicer.util.confirmOkCancelDisplay("""This module requires PyTorch extension. Would you like to install it?
                 
 Slicer will need to be restarted before continuing the install.""", "PyTorch extension not found.")
             if ret:
@@ -122,9 +126,10 @@ Slicer will need to be restarted before continuing the install.""", "PyTorch ext
             return False  # Need restart or not installed
 
     # Install the PyTorch Utils extension
-    @staticmethod
-    def installPyTorchExtension():
+    @classmethod
+    def installPyTorchExtension(cls):
         extensionManager = slicer.app.extensionsManagerModel()
+        extensionManager.setInteractive(cls.INTERACTIVE_MODE)
         extName = "PyTorch"
         if extensionManager.isExtensionInstalled(extName):
             return
@@ -140,7 +145,7 @@ Slicer will need to be restarted before continuing the install.""", "PyTorch ext
             import multiverseg
             return True
         except ModuleNotFoundError:
-            ret = slicer.util.confirmOkCancelDisplay(
+            ret = (not cls.INTERACTIVE_MODE) or slicer.util.confirmOkCancelDisplay(
                 "This module requires the MultiverSeg python package. Would you like to install it?",
                 "MultiverSeg package not found.")
             if ret:
@@ -169,7 +174,7 @@ Slicer will need to be restarted before continuing the install.""", "PyTorch ext
     def installTorch(cls):
         import PyTorchUtils
         torchLogic = PyTorchUtils.PyTorchUtilsLogic()
-        res = torchLogic.installTorch(askConfirmation=True)
+        res = torchLogic.installTorch(askConfirmation=cls.INTERACTIVE_MODE, torchvisionVersionRequirement=">=0.10")
 
         if res is None:
             raise RuntimeError("Failed to install torch and torchvision. "
