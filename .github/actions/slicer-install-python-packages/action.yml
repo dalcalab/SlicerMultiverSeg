@@ -1,0 +1,22 @@
+name: slicer-install-python-packages
+author: Sebastien Goll (Kitware SAS)
+description: Install python packages in Slicer's python environment
+
+inputs:
+  slicer_dir:
+    description: Slicer directory
+    required: true
+  additional_arguments:
+    description: Additional arguments for Slicer executable
+    default: '--no-main-window --no-splash'
+  package_names:
+    description: Packages to install
+    required: true
+runs:
+  using: composite
+  steps:
+    - uses: ./.github/actions/slicer-run-python-script
+      with:
+        script: ${{ github.action_path }}/install_py_packages.py
+        slicer_dir: ${{ inputs.slicer_dir }}
+        additional_arguments: ${{ inputs.additional_arguments }} ${{ inputs.package_names }}
