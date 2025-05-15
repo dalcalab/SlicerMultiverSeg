@@ -1,0 +1,17 @@
+#!/usr/bin/expect -f
+
+set timeout 10
+set dmg_file [lindex $argv 0]
+
+spawn hdiutil attach "$dmg_file"
+
+sleep 2
+send "q\r"
+
+expect {
+    "Agree Y/N?" {
+        send "y\r"
+    }
+}
+
+expect eof
