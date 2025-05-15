@@ -2,8 +2,8 @@ name: slicer-run-python-script
 author: Sebastien Goll (Kitware SAS)
 description: Run a python script through Slicer
 inputs:
-  slicer_dir:
-    description: Slicer directory
+  slicer_exe:
+    description: Slicer executable
     required: true
   script:
     description: Path to python to run
@@ -15,7 +15,5 @@ runs:
   using: composite
   steps:
     - run: |
-        "$SLICER_EXE" --python-script "${{ inputs.script }}" ${{ inputs.additional_arguments }}
+        "${{inputs.slicer_exe}}" --python-script "${{ inputs.script }}" ${{ inputs.additional_arguments }}
       shell: bash
-      env:
-        SLICER_EXE: ${{inputs.slicer_dir}}/Slicer.exe

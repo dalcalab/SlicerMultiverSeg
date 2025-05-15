@@ -3,7 +3,7 @@ author: Sebastien Goll (Kitware SAS)
 description: Install python packages in Slicer's python environment
 
 inputs:
-  slicer_dir:
+  slicer_exe:
     description: Slicer directory
     required: true
   additional_arguments:
@@ -18,5 +18,5 @@ runs:
     - uses: ./.github/actions/slicer-run-python-script
       with:
         script: ${{ github.action_path }}/install_py_packages.py
-        slicer_dir: ${{ inputs.slicer_dir }}
+        slicer_exe: ${{ inputs.slicer_exe }}
         additional_arguments: ${{ inputs.additional_arguments }} ${{ inputs.package_names }}

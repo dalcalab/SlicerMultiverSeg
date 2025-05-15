@@ -3,7 +3,7 @@ author: Sebastien Goll (Kitware SAS)
 description: Run python tests in Slicer
 
 inputs:
-  slicer_dir:
+  slicer_exe:
     description: Slicer directory
     required: true
   additional_arguments:
@@ -25,5 +25,5 @@ runs:
     - uses: ./.github/actions/slicer-run-python-script
       with:
         script: ${{ github.action_path }}/run_tests.py
-        slicer_dir: ${{ inputs.slicer_dir }}
+        slicer_exe: ${{ inputs.slicer_exe }}
         additional_arguments: --additional-module-paths ${{ inputs.module_paths }} ${{ inputs.additional_arguments }} ${{ inputs.tests_root_path }} ${{ inputs.tests_name_pattern }}
