@@ -9,6 +9,11 @@ from SegmentEditorMultiverSegLib import SegmentationLogic
 
 
 class SegmentationLogicTestCase(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        torch.backends.mps.is_available = lambda : False
+
     def test_instantiation(self):
         logic = SegmentationLogic(None)
 

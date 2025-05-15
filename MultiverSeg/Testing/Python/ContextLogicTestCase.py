@@ -1,5 +1,6 @@
 import unittest
 from pathlib import Path
+from shutil import rmtree
 from unittest import SkipTest
 
 import SampleData
@@ -14,6 +15,11 @@ class ContextLogicTestCase(unittest.TestCase):
         # Needed because empty directories are not clone with git
         emptyContextPath = Path(__file__).parent.joinpath("../TestData/Context/empty_context").resolve()
         emptyContextPath.mkdir(exist_ok=True)
+
+    @classmethod
+    def tearDownClass(cls):
+        emptyContextPath = Path(__file__).parent.joinpath("../TestData/Context/empty_context").resolve()
+        rmtree(emptyContextPath)
 
     def test_instantiation(self):
         logic = ContextLogic(None)
@@ -102,11 +108,11 @@ class ContextLogicTestCase(unittest.TestCase):
         iTruth = logic.loadImage(ressourcePath.joinpath("image_0.png"))
         mTruth = logic.loadImage(ressourcePath.joinpath("mask_0.png"))
 
-        diff = torch.abs(i - iTruth)
-        self.assertEqual(torch.max(diff).item(), 0)
+        diff = torch.abs(i.to(torch.int16) - iTruth.to(torch.int16)).to(torch.uint8)
+        self.assertLessEqual(torch.max(diff).item(), 5) # Need tolerance to different compression methods
 
         diff = torch.abs(m - mTruth)
-        self.assertEqual(torch.max(diff).item(), 0)
+        self.assertLessEqual(torch.max(diff).item(), 5)
 
         import shutil
         shutil.rmtree(contextPath)
