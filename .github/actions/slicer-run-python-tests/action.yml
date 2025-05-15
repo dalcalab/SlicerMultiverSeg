@@ -1,0 +1,29 @@
+name: slicer-run-python-tests
+author: Sebastien Goll (Kitware SAS)
+description: Run python tests in Slicer
+
+inputs:
+  slicer_exe:
+    description: Slicer directory
+    required: true
+  additional_arguments:
+    description: Additional arguments for Slicer executable
+    default: ''
+  tests_root_path:
+    description: Root path to search for tests
+    required: true
+  tests_name_pattern:
+    description: Pattern used to find test files
+    required: true
+  module_paths:
+    description: Paths to the tested modules
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - uses: ./.github/actions/slicer-run-python-script
+      with:
+        script: ${{ github.action_path }}/run_tests.py
+        slicer_exe: ${{ inputs.slicer_exe }}
+        additional_arguments: --additional-module-paths ${{ inputs.module_paths }} ${{ inputs.additional_arguments }} ${{ inputs.tests_root_path }} ${{ inputs.tests_name_pattern }}

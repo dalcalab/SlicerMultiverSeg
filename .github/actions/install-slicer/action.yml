@@ -1,0 +1,78 @@
+name: install-slicer
+author: Sebastien Goll (Kitware SAS)
+description: Install 3D Slicer
+inputs:
+  version:
+    description: Version of Slicer available at https://community.chocolatey.org/packages/3dslicer#versionhistory
+    default: ''
+outputs:
+  slicer_executable:
+    description: Slicer executable
+    value: ${{ steps.slicer_exe.outputs.executable }}
+
+runs:
+  using: composite
+  steps:
+    - name: Setting the permission
+      run: chmod +x "${{ github.action_path }}/downloader.sh"
+      shell: bash
+    - name: Download installer
+      run: |
+        "${{ github.action_path }}/downloader.sh" ${{ runner.os }}
+      shell: bash
+    - name: Get installer file
+      id: installer
+      run: |
+        installer=$(find "./installer" -maxdepth 1 -name "Slicer*" | head -n1 | xargs realpath)
+        echo "slicer_installer=$installer" >> $GITHUB_OUTPUT
+      shell: bash
+    - name: Windows Slicer install
+      id: win_install
+      if: ${{runner.os == 'Windows'}}
+      run: |
+        ${{ steps.installer.outputs.slicer_installer }} //S
+        folder=$(find "C:/ProgramData/slicer.org" -maxdepth 1 -type d -name Slicer* -exec stat --format "%Y %n" {} + |sort -nr | head -n1 | cut -d' ' -f2-)
+        echo "executable=$folder/Slicer.exe" >> $GITHUB_OUTPUT
+      shell: bash
+    - name: Linux env setup
+      if: ${{ runner.os == 'Linux' }}
+      run: |
+        sudo apt-get install libglu1-mesa libpulse-mainloop-glib0 libnss3 libasound2t64 qt5dxcb-plugin libxcb-util1 xvfb
+        mkdir ./Slicer
+        export DISPLAY=:99
+        Xvfb :99 -screen 0 1920x1080x24 > /dev/null 2>&1 &
+        echo "DISPLAY=:99" >> $GITHUB_ENV
+      shell: bash
+    - name: Linux Slicer install
+      id: linux_install
+      if: ${{ runner.os == 'Linux' }}
+      run: |
+        tar xzf "${{ steps.installer.outputs.slicer_installer }}" -C "."
+        folder=$(find "." -maxdepth 1 -name "Slicer*" -type d | head -n1 | xargs realpath)
+        echo "executable=$folder/Slicer" >> $GITHUB_OUTPUT
+      shell: bash
+    - name: Max env setup
+      if: ${{ runner.os == 'macOS' }}
+      run: |
+        brew install expect
+        chmod +x "${{ github.action_path }}/macos_installer.exp"
+      shell: bash
+    - name: Mac Slicer install
+      if: ${{ runner.os == 'macOS' }}
+      id: mac_install
+      run: |
+        MOUNT_POINT=$("${{ github.action_path }}/macos_installer.exp" ${{ steps.installer.outputs.slicer_installer }} | grep -o '/Volumes/[^ ]*'| tr -d '\r\n')
+        cp -R "$MOUNT_POINT/Slicer.app" /Applications/
+        hdiutil detach "$MOUNT_POINT"
+        echo "executable=/Applications/Slicer.app/Contents/MacOS/Slicer" >> $GITHUB_OUTPUT
+      shell: bash
+    - id: slicer_exe
+      run: |
+        if [ ${{ runner.os }} == "Windows" ]; then
+          echo "executable=${{ steps.win_install.outputs.executable }}" >> $GITHUB_OUTPUT
+        elif [ ${{ runner.os }} == "Linux" ]; then
+          echo "executable=${{ steps.linux_install.outputs.executable }}" >> $GITHUB_OUTPUT
+        elif [ ${{ runner.os }} == "macOS" ]; then
+          echo "executable=${{ steps.mac_install.outputs.executable }}" >> $GITHUB_OUTPUT
+        fi
+      shell: bash

@@ -7,94 +7,42 @@ on:
   pull_request:
     branches:
       - main
+  workflow_dispatch:
+
 
 jobs:
-  Tests-Windows:
-    runs-on: windows-latest
-    outputs:
-      install_path: ${{ steps.slicerLocation.outputs.install_path }}
-      python_path: ${{ steps.pythonLocation.outputs.python_path }}
+  Running-Tests:
+    timeout-minutes: 30
+    continue-on-error: true
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     steps:
-      - name: Install Slicer
-        run: choco install 3dslicer -y
-      - name: Get slicer executable
-        id: slicerLocation
-        run: |
-          $folder = Get-ChildItem -Path "C:\ProgramData\slicer.org" -Filter "Slicer.exe" -Recurse -ErrorAction SilentlyContinue -Force |
-          Select-Object -First 1 
-          
-          if ($folder) {
-            $installPath = $folder.FullName
-            Write-Host "Found Slicer at $installPath"
-            # Set the output
-            "install_path=$installPath" >> $env:GITHUB_OUTPUT
-          } else {
-            Write-Host "Slicer not found."
-            exit 1
-          }
-      - name: Get python env
-        id: pythonLocation
-        run: |
-          $pythonPath = Resolve-Path "${{ steps.slicerLocation.outputs.install_path }}/../bin/PythonSlicer.exe"
-          echo "$pythonPath"
-          "python_path=$pythonPath" >> $env:GITHUB_OUTPUT
-      - name: Install SlicerPytorch module
-        id: slicerpytorch
-        run: |
-          $path = "${{ steps.slicerLocation.outputs.install_path }}"
-          $process = Start-Process -FilePath "$path" -ArgumentList "--testing", "--no-splash", "--no-main-window", "--python-code `"slicer.app.extensionsManagerModel().installExtensionFromServer('PyTorch')`"" -Wait -RedirectStandardOutput "log_std.txt" -RedirectStandardError "log_err.txt" -PassThru
-          echo "Standard output:"
-          Get-Content log_std.txt
-          echo "Error output:"
-          Get-Content log_err.txt
-          $exitCode = $process.ExitCode
-          echo "Exit code: $exitCode"
-          $folder = Get-ChildItem -Path "${{ steps.slicerLocation.outputs.install_path }}/../slicer.org" -Include qt-*modules -Recurse | Select-Object -First 1
-          $folder = $folder.FullName
-          echo "PyTorch module installed at $folder"
-          "slicerPyTorch=$folder" >> $env:GITHUB_OUTPUT
-          exit $exitCode
-      - name: Install pytorch
-        run: |
-          $path = "${{ steps.slicerLocation.outputs.install_path }}"
-          $pytorchmodule = "${{ steps.slicerpytorch.outputs.slicerPyTorch }}"
-          $process = Start-Process -FilePath "$path" -ArgumentList "--testing", "--no-splash", "--no-main-window","--additional-module-paths `"$pytorchmodule`"" ,"--python-code `"import PyTorchUtils;PyTorchUtils.PyTorchUtilsLogic().installTorch(askConfirmation=False,torchvisionVersionRequirement='>=0.20')`"" -Wait -RedirectStandardOutput "log_std.txt" -RedirectStandardError "log_err.txt" -PassThru
-          echo "Standard output:"
-          Get-Content log_std.txt
-          echo "Error output:"
-          Get-Content log_err.txt
-          $exitCode = $process.ExitCode
-          echo "Exit code: $exitCode"
-          exit $exitCode
-      - name: Install multiverseg
-        run: |
-          $path = "${{ steps.pythonLocation.outputs.python_path }}"
-          & $path -m pip install "git+https://github.com/halleewong/MultiverSeg.git"
-      - name: Check out repository code
-        uses: actions/checkout@v4
-      - name: Download models
-        run: |
-          $path = "${{ steps.slicerLocation.outputs.install_path }}"
-          $modulepath= "${{ github.workspace }}/MultiverSeg"
-          $process = Start-Process -FilePath "$path" -ArgumentList "--testing", "--no-splash", "--no-main-window","--additional-module-paths `"$modulepath`"" ,"--python-code `"from SegmentEditorMultiverSegLib import InstallLogic as i;i._downloadModel(i.MULTIVERSEG_FILE_NAME, i.MULTIVERSEG_DOWNLOAD_URL);i._downloadModel(i.SCRIBBLEPROMPT_FILE_NAME, i.SCRIBBLEPROMPT_DOWNLOAD_URL)`"" -Wait -RedirectStandardOutput "log_std.txt" -RedirectStandardError "log_err.txt" -PassThru
-      - name: Test
-        run: |
-          $path = "${{ steps.slicerLocation.outputs.install_path }}"
-          $modulepath= "${{ github.workspace }}/MultiverSeg"
-          $pytorchmodule = "${{ steps.slicerpytorch.outputs.slicerPyTorch }}"
-          $testPath = "$modulepath/Testing/Python"
-          $testNames = Get-ChildItem ${{ github.workspace }} -Filter *TestCase.py -Recurse | ForEach-Object {$_.BaseName}
-          $exitCode = 0
-          echo "Found tests:"
-          echo $testNames
-          foreach($testCase in $testNames){
-            $process = Start-Process -FilePath "$path" -ArgumentList "--testing", "--no-splash", "--additional-module-paths `"$modulepath`" `"$pytorchmodule`"" ,"--python-code `"import slicer.testing; slicer.testing.runUnitTest(r'$testPath', '$testCase')`"" -Wait -RedirectStandardOutput "log_std.txt" -RedirectStandardError "log_err.txt" -PassThru
-            echo "Standard output:"
-            Get-Content log_std.txt
-            echo "Error output:"
-            Get-Content log_err.txt
-            $currentCode = $process.ExitCode
-            echo "Exit code: $currentCode"
-            $exitCode = ($currentCode , $exitCode | Measure-Object -Max).Maximum
-          }
-          exit $exitCode
+      - uses: actions/checkout@v4
+        name: Checkout
+      - uses: ./.github/actions/install-slicer
+        id: slicer_install
+        name: Install Slicer
+      - name: Install PyTorch module
+        uses: ./.github/actions/slicer-run-python-script
+        with:
+          script: './.github/python_scripts/install_pytorch_module.py'
+          slicer_exe: ${{ steps.slicer_install.outputs.slicer_executable }}
+          additional_arguments: --no-main-window --no-splash
+      - name: Install Python dependencies
+        uses: ./.github/actions/slicer-run-python-script
+        with:
+          script: './.github/python_scripts/install_python_dependencies.py'
+          slicer_exe: ${{ steps.slicer_install.outputs.slicer_executable }}
+          additional_arguments: --no-main-window --no-splash
+      - name: Run tests
+        uses: ./.github/actions/slicer-run-python-tests
+        with:
+          slicer_exe: ${{ steps.slicer_install.outputs.slicer_executable }}
+          additional_arguments: --testing --no-splash
+          tests_root_path: './MultiverSeg/Testing/Python'
+          tests_name_pattern: '*TestCase.py'
+          module_paths: './MultiverSeg'
+
+
