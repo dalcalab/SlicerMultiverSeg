@@ -302,6 +302,7 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         self.changeViewLayout()
         self.addImageDialog()
         self.changeViewLayout(initialLayout)  # Restore the layout
+        self.handleTaskChange(self.contextComboBox.currentIndex)
 
     def removeImageFromContext(self):
         imageToRemove = self.removeImageDialog()
@@ -309,6 +310,7 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
             return
 
         self.contextLogic.removeExample(imageToRemove)
+        self.handleTaskChange(self.contextComboBox.currentIndex)
 
     def addImageDialog(self):
         # Create and handle the dialog to add an image to a context
