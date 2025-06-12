@@ -77,3 +77,7 @@ results might be suboptimal, but adding more example can slow down the predictio
 <img src="Screenshots/Demo_1.png" width=1000px/>
 <img src="Screenshots/Demo_2.png" width=1000px/>
 <img src="Screenshots/Demo_3.png" width=1000px/>
+
+## Acknowledgement
+
+This work was funded by the [Cure Overgrowth Syndromes (COSY) RHU Project (ANR-18-RHUS-005)](https://rhu-cosy.com/en/accueil-english/)
