@@ -1,10 +1,6 @@
 name: install-slicer
 author: Sebastien Goll (Kitware SAS)
 description: Install 3D Slicer
-inputs:
-  version:
-    description: Version of Slicer available at https://community.chocolatey.org/packages/3dslicer#versionhistory
-    default: ''
 outputs:
   slicer_executable:
     description: Slicer executable
