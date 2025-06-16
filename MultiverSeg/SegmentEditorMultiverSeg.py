@@ -24,7 +24,7 @@ class SegmentEditorMultiverSeg(ScriptedLoadableModule):
         self.parent.contributors = ["Sebastien Goll (Kitware)"]
         self.parent.hidden = True
         # _() function marks text as translatable to other languages
-        self.parent.helpText = _("This segment editor effect allow the use of the MultiverSeg model for segmentation")
+        self.parent.helpText = _("This segment editor effect allows the use of the MultiverSeg model for segmentation")
         self.parent.acknowledgementText = _("""Wong, Hallee E., et al.
 "MultiverSeg: Scalable Interactive Segmentation of Biomedical Imaging Datasets with In-Context Guidance."
 arXiv preprint arXiv:2412.15058 (2024).
