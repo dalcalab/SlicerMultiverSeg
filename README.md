@@ -5,7 +5,7 @@ segmentation effect that uses MultiverSeg.
 
 ## MultiverSeg segmentation effect
 
-After installing this extension, a new segmentation effect is available in the Segment Editor that allow the use of the
+After installing this extension, a new segmentation effect is available in the Segment Editor that allows the use of the
 MultiverSeg model to segment automatically your volume.
 
 ### Usage
