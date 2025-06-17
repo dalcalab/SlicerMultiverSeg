@@ -73,7 +73,7 @@ class SegmentationLogicTestCase(unittest.TestCase):
 
         logic.workingView = "Red"
         dummyVolume = torch.rand([1, 512, 512, 512])
-        res = logic.preprocessVolume(dummyVolume)
+        res = logic.preprocessVolume(dummyVolume, 2)
         self.assertSequenceEqual(res.shape, [1, 128, 128, 512])
         self.assertIs(res.dtype, torch.float16)
         self.assertAlmostEquals(torch.max(res).item(), 1)
@@ -81,7 +81,7 @@ class SegmentationLogicTestCase(unittest.TestCase):
 
         logic.workingView = "Green"
         dummyVolume = torch.rand([1, 1000, 43, 100])
-        res = logic.preprocessVolume(dummyVolume)
+        res = logic.preprocessVolume(dummyVolume, 1)
         self.assertSequenceEqual(res.shape, [1, 128, 43, 128])
         self.assertIs(res.dtype, torch.float16)
         self.assertAlmostEquals(torch.max(res).item(), 1)
@@ -89,7 +89,7 @@ class SegmentationLogicTestCase(unittest.TestCase):
 
         logic.workingView = "Yellow"
         dummyVolume = torch.randint(2, [1, 1000, 43, 100])
-        res = logic.preprocessVolume(dummyVolume, isSegmentation=True)
+        res = logic.preprocessVolume(dummyVolume, 0, isSegmentation=True)
         self.assertSequenceEqual(res.shape, [1, 1000, 128, 128])
         self.assertIs(res.dtype, torch.bool)
 
@@ -100,19 +100,19 @@ class SegmentationLogicTestCase(unittest.TestCase):
 
         logic.workingView = "Red"
         updatedSlice = torch.zeros([55, 66])
-        result = logic.updateSlice(baseVolume, updatedSlice, 25)
+        result = logic.updateSlice(baseVolume, updatedSlice, 25, 2)
         self.assertSequenceEqual(result.shape, [55, 66, 77])
         self.assertEqual(torch.max(result[:, :, 25]).item(), 0)
 
         logic.workingView = "Green"
         updatedSlice = torch.zeros([55, 77])
-        result = logic.updateSlice(baseVolume, updatedSlice, 20)
+        result = logic.updateSlice(baseVolume, updatedSlice, 20, 1)
         self.assertSequenceEqual(result.shape, [55, 66, 77])
         self.assertEqual(torch.max(result[:, 20]).item(), 0)
 
         logic.workingView = "Yellow"
         updatedSlice = torch.zeros([66, 77])
-        result = logic.updateSlice(baseVolume, updatedSlice, 30)
+        result = logic.updateSlice(baseVolume, updatedSlice, 30, 0)
         self.assertSequenceEqual(result.shape, [55, 66, 77])
         self.assertEqual(torch.max(result[30]).item(), 0)
 
@@ -122,15 +122,15 @@ class SegmentationLogicTestCase(unittest.TestCase):
         baseVolume = torch.rand([55, 66, 77])
 
         logic.workingView = "Red"
-        result = logic.extractSlice(baseVolume, 25)
+        result = logic.extractSlice(baseVolume, 25,2)
         self.assertSequenceEqual(result.shape, [55, 66])
 
         logic.workingView = "Green"
-        result = logic.extractSlice(baseVolume, 20)
+        result = logic.extractSlice(baseVolume, 20,1)
         self.assertSequenceEqual(result.shape, [55, 77])
 
         logic.workingView = "Yellow"
-        result = logic.extractSlice(baseVolume, 30)
+        result = logic.extractSlice(baseVolume, 30,0)
         self.assertSequenceEqual(result.shape, [66, 77])
 
     def test_rawPredict(self):
