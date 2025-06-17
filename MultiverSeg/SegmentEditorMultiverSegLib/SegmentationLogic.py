@@ -38,6 +38,9 @@ class SegmentationLogic:
         self.sliceOffsetRange = (0., 0.)
 
     def initSegments(self):
+        """
+        Initialize the segments by creating the positive and negative segments.
+        """
         # Get the current segment
         self.segmentationNode: vtkMRMLSegmentationNode = self.scriptedEffect.parameterSetNode().GetSegmentationNode()
         segmentation: vtkSegmentation = self.segmentationNode.GetSegmentation()
@@ -59,6 +62,10 @@ class SegmentationLogic:
         segmentation.AddSegment(self.negSegment)
 
     def initModel(self):
+        """
+        Verify the dependencies and initialize the model.
+        :return: True if the initialization was successful, False otherwise.
+        """
         from .InstallLogic import InstallLogic, DependenciesLogic
 
         progress = slicer.util.createProgressDialog(maximum=10, labelText="Verifying dependencies")
@@ -97,6 +104,9 @@ class SegmentationLogic:
         return True
 
     def reset(self):
+        """
+        Remove the pos and neg segments and reset the internal state of the logic.
+        """
         if self.segmentationNode is None:
             return
 
@@ -113,6 +123,9 @@ class SegmentationLogic:
         self.sliceOffsetRange = (min, max)
 
     def predict(self):
+        """
+        Launch a 2D prediction for the current slice and view.
+        """
         # Get the slice number
         import torchvision.transforms.v2 as torchviz
 
@@ -144,11 +157,17 @@ class SegmentationLogic:
         slicer.util.updateSegmentBinaryLabelmapFromArray(resultSegment, segNode, segmentId, volumeNode)
 
     def thresholdPrediction(self, prediction: "torch.Tensor", threshold=0.5):
+        """
+        Apply a threshold to the prediction.
+        """
         prediction[prediction < threshold] = 0
         prediction[prediction >= threshold] = 1
         return prediction
 
     def rawPredictForSlice(self, sliceNumber: int) -> tuple["torch.Tensor", "torch.Size"]:
+        """
+        Make a prediction for a 2D slice without post-processing
+        """
         # return the raw prediction and the original dimension of the slice (for resizing)
         import torch
         # Load the context
@@ -206,6 +225,9 @@ class SegmentationLogic:
         return y, originalDim
 
     def predict3d(self):
+        """
+        Make a 3D prediction
+        """
 
         sliceNodeID = f"vtkMRMLSliceNode{self.workingView}"
         sliceNode = slicer.mrmlScene.GetNodeByID(sliceNodeID)
@@ -298,6 +320,9 @@ class SegmentationLogic:
         slicer.util.updateSegmentBinaryLabelmapFromArray(resultSegment, segNode, segmentId, volumeNode)
 
     def getCurrentSliceIndex(self, sliceColor):
+        """
+        Get the index of the current slice for the view sliceColor based on the offset value.
+        """
         sliceNodeID = f"vtkMRMLSliceNode{sliceColor}"
 
         sliceNode = slicer.mrmlScene.GetNodeByID(sliceNodeID)
@@ -309,8 +334,6 @@ class SegmentationLogic:
     def computeSliceAxis(self, volumeNode: vtkMRMLScalarVolumeNode, sliceNode: vtkMRMLSliceNode):
         """
         Given the volume node and the slice node, find the axis of the volume which correspond to the stepping direction in the selected view.
-        :return:
-        :raise:
         """
         # Get the slice normal vector in RAS
         sliceToRAS = sliceNode.GetSliceToRAS()
@@ -335,15 +358,14 @@ class SegmentationLogic:
             return 2
         raise ValueError(f"View {self.workingView} is not axis aligned with the volume geometry")
 
-    def invertAxisReordering(self, permutedArray: np.ndarray, directionMatrix: np.ndarray):
-        perm_order = np.argmax(np.abs(directionMatrix), axis=0)
-        inverse_order = np.argsort(perm_order)  # Compute the inverse permutation
-        return np.transpose(permutedArray, axes=inverse_order)
-
     def extractSlice(self, array: np.ndarray, sliceNumber: int, axis: int):
+        """Extract the slice sliceNumber from the array given an axis"""
         return np.take(array, sliceNumber, axis=axis)
 
     def updateSlice(self, array: np.ndarray, newSlice: np.ndarray, sliceNumber: int, axis: int):
+        """
+        Replace the slice in array by the newSlice. sliceNumber and axis are for positional information.
+        """
         if axis == 0:
             array[sliceNumber] = newSlice
         elif axis == 1:
@@ -355,6 +377,9 @@ class SegmentationLogic:
         return array
 
     def preprocessSlice(self, slice: "torch.Tensor", isSegmentation=False):
+        """
+        Preprocess a 2d slice for the model. If isSegmentation, the resulting Tensor in of type bool
+        """
         # Slice of dim  of shape 1*W*H
         import torch
         import torchvision.transforms.v2 as torchviz
@@ -374,6 +399,9 @@ class SegmentationLogic:
         return result  # 1*W*H
 
     def preprocessVolume(self, volume: "torch.Tensor", axis: int, isSegmentation=False):
+        """
+        Apply the preprocessing pipeline on a full volume given an axis. The direction of the axis is not rescaled to allow stepping through each slice.
+        """
         # volume indexed RAS of shape 1*X*Y*Z
         import torch
         if isSegmentation:
