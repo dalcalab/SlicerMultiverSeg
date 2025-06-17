@@ -90,17 +90,12 @@ class ContextLogic:
         imageArray = slicer.util.arrayFromVolume(volume).copy()
         maskArray = slicer.util.arrayFromSegmentBinaryLabelmap(segmentationNode, segmentID, volume)
 
-        IJKToRAS = np.zeros((3, 3))
-        volume.GetIJKToRASDirections(IJKToRAS)
-        KJIToRAS = IJKToRAS.copy()
-        KJIToRAS[:, 0] = IJKToRAS[:, 2]
-        KJIToRAS[:, 2] = IJKToRAS[:, 0]
+        sliceNodeID = f"vtkMRMLSliceNode{view}"
+        sliceNode = slicer.mrmlScene.GetNodeByID(sliceNodeID)
+        axis = segLogic.computeSliceAxis(volume, sliceNode)
 
-        imageArray = segLogic.reorderAxisToRAS(imageArray, KJIToRAS)
-        maskArray = segLogic.reorderAxisToRAS(maskArray, KJIToRAS)
-
-        imageTensor = torch.from_numpy(segLogic.extractSlice(imageArray, k, view))
-        maskTensor = torch.from_numpy(segLogic.extractSlice(maskArray, k, view))
+        imageTensor = torch.from_numpy(segLogic.extractSlice(imageArray, k, axis))
+        maskTensor = torch.from_numpy(segLogic.extractSlice(maskArray, k, axis))
 
         imageTensor = segLogic.preprocessSlice(imageTensor[None])
         maskTensor = segLogic.preprocessSlice(maskTensor[None])
