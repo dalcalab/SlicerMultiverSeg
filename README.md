@@ -8,6 +8,19 @@ segmentation effect that uses MultiverSeg.
 After installing this extension, a new segmentation effect is available in the Segment Editor that allows the use of the
 MultiverSeg model to segment automatically your volume.
 
+### Manual Installation
+
+1. Drag and drop the [`MultiverSeg`](./MultiverSeg) folder into 3D Slicer
+2. Restart slicer
+3. The new segment editor effect should be visible in the Segment Editor
+
+_Note: The first time you click on the `initialize` button, slicer will prompt you to download all the dependecies/files/extension needed. It can take some time installing everything._
+
+### Video Tutorials
+
+To segment a specific region you'll first need to create a new task and populate its context with segmented examples as shown in [this video](https://vimeo.com/1103051879). Once you've populated a task with examples, you can look at [this video](https://vimeo.com/1103055377) for a example of how to predict a structure.
+
+
 ### Usage
 
 How to use it:
